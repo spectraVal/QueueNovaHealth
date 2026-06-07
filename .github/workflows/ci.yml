@@ -8,7 +8,7 @@ on:
   pull_request:
     branches:
       - main
-      - develop
+      - development
 
 jobs:
   frontend:
@@ -48,15 +48,16 @@ jobs:
         working-directory: backend
 
     services:
-      mysql:
-        image: mysql:8.0
+      postgres:
+        image: postgres:16
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: testing
+          POSTGRES_DB: testing
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         ports:
-          - 3306:3306
+          - 5432:5432
         options: >-
-          --health-cmd="mysqladmin ping"
+          --health-cmd="pg_isready -U postgres"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
@@ -69,8 +70,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: mbstring, bcmath, pdo, pdo_mysql
-          coverage: xdebug
+          extensions: mbstring, bcmath, pdo, pdo_pgsql
+          coverage: none
 
       - name: Copy .env
         run: cp .env.example .env.testing
@@ -84,22 +85,22 @@ jobs:
       - name: Run migrations
         run: php artisan migrate --env=testing --force
         env:
-          DB_CONNECTION: mysql
+          DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
-          DB_PORT: 3306
+          DB_PORT: 5432
           DB_DATABASE: testing
-          DB_USERNAME: root
-          DB_PASSWORD: root
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
 
       - name: Run tests
         run: php artisan test --env=testing
         env:
-          DB_CONNECTION: mysql
+          DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
-          DB_PORT: 3306
+          DB_PORT: 5432
           DB_DATABASE: testing
-          DB_USERNAME: root
-          DB_PASSWORD: root
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
 
   docker-build:
     name: Docker Build Check
