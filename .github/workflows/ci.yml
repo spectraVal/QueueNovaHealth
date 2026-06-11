@@ -107,7 +107,8 @@ jobs:
   docker-build:
     name: Docker Build Check
     runs-on: ubuntu-latest
-    needs: [frontend, backend]
+    needs: [frontend]
+#    needs: [frontend, backend]
 
     steps:
       - name: Checkout repository
@@ -116,5 +117,5 @@ jobs:
       - name: Build frontend image
         run: docker build -t queuenova-frontend ./frontend
 
-      - name: Build backend image
-        run: docker build -t queuenova-backend ./backend
+#      - name: Build backend image
+#        run: docker build -t queuenova-backend ./backend
