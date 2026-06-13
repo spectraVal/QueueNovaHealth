@@ -1,0 +1,148 @@
+# =============================================================================
+# Schemas — Queue
+# Dari Figma nurse-queue-list:
+# - Kolom: No. Antrian, Nama Pasien, Status, Estimasi Waktu Tunggu, Catatan
+# - Status badge: CALLED, WAITING, BOOKED, DONE
+# - Filter tabs: Semua | Booked | Called | Done
+# Dari Figma doctor-queue-list:
+# - Kolom tambahan: Keluhan, Jenis Kelamin (dari patients/reservations)
+# - "Hasil Skrining" — field catatan nurse (belum di-spec sebelumnya)
+# =============================================================================
+
+QueueResource:
+  type: object
+  properties:
+    queue_id:
+      type: integer
+      example: 4
+    queue_number:
+      type: integer
+      description: "Nomor urut antrian dalam satu instance. Dimulai dari 1."
+      example: 4
+    # State machine: booked→checked-in→waiting→called→in-progress→done/no-show
+    status:
+      type: string
+      enum: [booked, checked-in, waiting, called, in-progress, done, no-show, cancelled]
+      example: "waiting"
+    estimated_wait_minutes:
+      type: integer
+      nullable: true
+      description: "Estimasi menit tunggu. null jika belum dikalkulasi (status masih booked)."
+      example: 25
+    # [BARU dari Figma doctor-queue-list] catatan nurse saat check-in
+    # Figma menampilkan kolom "Catatan" di nurse queue dan "Hasil Skrining" di doctor queue
+    nurse_notes:
+      type: string
+      nullable: true
+      description: "Catatan dari nurse saat check-in atau update status. Terlihat oleh dokter."
+      example: "Pasien terlihat lemas, tekanan darah 130/90"
+    updated_at:
+      type: string
+      format: date-time
+      example: "2025-08-15T09:05:00Z"
+    # Nested reservation — berisi info pasien untuk tampilan nurse/doctor
+    reservation:
+      type: object
+      properties:
+        reservation_id: { type: integer, example: 4 }
+        # complaint dari reservations — ditampilkan di doctor-queue-list Figma
+        complaint:
+          type: string
+          nullable: true
+          example: "Batuk dan pilek sudah 3 hari"
+        patient:
+          type: object
+          properties:
+            patient_id: { type: integer, example: 4 }
+            name: { type: string, example: "Ucok Siahaan" }
+            # gender — ditampilkan di doctor-queue-list Figma (kolom "Jenis Kelamin")
+            gender:
+              type: string
+              nullable: true
+              example: "laki-laki"
+            phone: { type: string, example: "084567890123" }
+        schedule:
+          type: object
+          properties:
+            instance_id: { type: integer, example: 1 }
+            date: { type: string, format: date, example: "2025-08-15" }
+            start_time: { type: string, example: "08:00" }
+            end_time: { type: string, example: "12:00" }
+
+# Request body PATCH /queues/{id}/status (Nurse only)
+QueueStatusRequest:
+  type: object
+  required: [status]
+  properties:
+    status:
+      type: string
+      description: |
+        Status antrian baru. Transisi valid:
+        booked      → checked-in
+        checked-in  → waiting
+        waiting     → called      (trigger notifikasi ke pasien)
+        waiting     → no-show
+        called      → in-progress
+        in-progress → done
+        booked      → cancelled
+        checked-in  → cancelled
+      enum: [checked-in, waiting, called, in-progress, done, no-show, cancelled]
+      example: "called"
+    # [BARU dari Figma] kolom "Catatan" di nurse queue list
+    # Nurse bisa tambah catatan saat update status
+    nurse_notes:
+      type: string
+      nullable: true
+      description: "Catatan nurse — ditampilkan sebagai 'Hasil Skrining' di queue list dokter."
+      example: "Pasien terlihat lemas, tekanan darah 130/90"
+
+# Resource laporan antrian untuk Admin
+QueueReportResource:
+  type: object
+  properties:
+    data:
+      type: object
+      properties:
+        period:
+          type: string
+          enum: [daily, monthly, yearly]
+          example: "monthly"
+        period_label:
+          type: string
+          example: "Agustus 2025"
+        date_range:
+          type: object
+          properties:
+            from: { type: string, format: date, example: "2025-08-01" }
+            to:   { type: string, format: date, example: "2025-08-31" }
+        # Dari Figma admin-reports: "Total antrian hari ini: 240", dll
+        summary:
+          type: object
+          properties:
+            total_reservations: { type: integer, example: 240 }
+            completed:          { type: integer, example: 180 }
+            cancelled:          { type: integer, example: 10 }
+            active:             { type: integer, example: 50 }
+        by_department:
+          type: array
+          items:
+            type: object
+            properties:
+              department_id:   { type: integer, example: 1 }
+              department_name: { type: string, example: "Poli Umum" }
+              total:           { type: integer, example: 70 }
+              completed:       { type: integer, example: 50 }
+              cancelled:       { type: integer, example: 5 }
+              active:          { type: integer, example: 15 }
+        by_doctor:
+          type: array
+          items:
+            type: object
+            properties:
+              doctor_id:       { type: integer, example: 1 }
+              doctor_name:     { type: string, example: "dr. Ucok Napitupulu, Sp.PD" }
+              department_name: { type: string, example: "Poli Umum" }
+              total:           { type: integer, example: 40 }
+              completed:       { type: integer, example: 30 }
+              cancelled:       { type: integer, example: 3 }
+              active:          { type: integer, example: 7 }

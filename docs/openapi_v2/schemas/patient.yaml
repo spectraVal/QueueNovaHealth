@@ -1,0 +1,80 @@
+# =============================================================================
+# Schemas — Patient Profile
+# [BARU v2.1] Dari analisis Figma form Create Reservation:
+# - bpjs_number, birth_place, birth_date, gender ditampilkan di form
+# - Data ini perlu ada sebelum pasien bisa submit reservasi
+# =============================================================================
+
+# Resource profil pasien lengkap
+PatientProfileResource:
+  type: object
+  properties:
+    patient_id:
+      type: integer
+      example: 5
+    name:
+      type: string
+      example: "Ucok Sitorus"
+    phone:
+      type: string
+      example: "081234567890"
+    # Field dari Figma form Create Reservation
+    # "Informasi Pasien" section menampilkan semua field ini
+    bpjs_number:
+      type: string
+      nullable: true
+      description: "Nomor BPJS pasien. Nullable — bisa dilengkapi saat booking."
+      example: "0001234567890"
+    birth_place:
+      type: string
+      nullable: true
+      description: "Tempat lahir pasien."
+      example: "Medan"
+    birth_date:
+      type: string
+      format: date
+      nullable: true
+      description: "Tanggal lahir pasien (YYYY-MM-DD)."
+      example: "1995-06-15"
+    gender:
+      type: string
+      nullable: true
+      enum: ["laki-laki", "perempuan"]
+      example: "laki-laki"
+    user_id:
+      type: integer
+      example: 10
+
+# Request body untuk PATCH /patients/me (update profil sendiri)
+# Semua field opsional — partial update
+PatientProfileRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      maxLength: 255
+      example: "Ucok Sitorus"
+    phone:
+      type: string
+      maxLength: 15
+      example: "081234567890"
+    bpjs_number:
+      type: string
+      nullable: true
+      maxLength: 50
+      example: "0001234567890"
+    birth_place:
+      type: string
+      nullable: true
+      maxLength: 100
+      example: "Medan"
+    birth_date:
+      type: string
+      format: date
+      nullable: true
+      example: "1995-06-15"
+    gender:
+      type: string
+      nullable: true
+      enum: ["laki-laki", "perempuan"]
+      example: "laki-laki"

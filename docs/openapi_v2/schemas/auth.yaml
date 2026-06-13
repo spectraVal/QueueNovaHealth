@@ -1,0 +1,98 @@
+# =============================================================================
+# Schemas — Authentication
+# =============================================================================
+
+RegisterRequest:
+  type: object
+  required: [name, email, password, password_confirmation, phone]
+  properties:
+    name:
+      type: string
+      maxLength: 255
+      example: "Ucok Sitorus"
+    email:
+      type: string
+      format: email
+      example: "ucok@example.com"
+    password:
+      type: string
+      format: password
+      minLength: 8
+      example: "password123"
+    password_confirmation:
+      type: string
+      format: password
+      example: "password123"
+    phone:
+      type: string
+      maxLength: 15
+      example: "081234567890"
+
+LoginRequest:
+  type: object
+  required: [email, password]
+  properties:
+    email:
+      type: string
+      format: email
+      example: "ucok@example.com"
+    password:
+      type: string
+      format: password
+      example: "password123"
+
+# Response setelah login — mengembalikan Sanctum plain-text token
+# Simpan di React state/memory, BUKAN localStorage
+LoginResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: "Login berhasil."
+    data:
+      type: object
+      properties:
+        token:
+          type: string
+          description: "Sanctum plain-text token. Gunakan: Authorization: Bearer {token}"
+          example: "3|aB1cUcokD2eF3gH4iJ5kL6"
+        token_type:
+          type: string
+          example: "Bearer"
+        user:
+          $ref: '#/UserResource'
+
+# Resource user — profile bervariasi per role:
+# patient → { patient_id, name, phone, bpjs_number, birth_place, birth_date, gender }
+# doctor  → { doctor_id, name, specialization, sip_number, gender, birth_date, doctor_status, department }
+# nurse   → { nurse_id, name, sip_number, gender, birth_date, department }
+# admin   → { admin_id, name }
+UserResource:
+  type: object
+  properties:
+    user_id:
+      type: integer
+      example: 10
+    email:
+      type: string
+      format: email
+      example: "ucok@example.com"
+    role:
+      type: string
+      enum: [patient, doctor, nurse, admin]
+      example: "patient"
+    status:
+      type: string
+      enum: [active, inactive]
+      example: "active"
+    profile:
+      type: object
+      description: "Struktur berbeda per role. Lihat PatientProfileResource / DoctorResource / NurseResource."
+      example:
+        patient_id: 5
+        name: "Ucok Sitorus"
+        phone: "081234567890"
+        bpjs_number: "0001234567890"
+        birth_place: "Medan"
+        birth_date: "1995-06-15"
+        gender: "laki-laki"

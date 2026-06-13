@@ -1,0 +1,174 @@
+# =============================================================================
+# Paths — EPIC 1: Authentication
+# Dari Figma: app name = "QueueNova Health", brand = "QueueNova"
+# Login screen: email + password + "Remember me" + "Forgot Password?"
+# Register screen: nama, email, password, konfirmasi password
+# =============================================================================
+
+/auth/register:
+  post:
+    tags: [Authentication]
+    summary: Register pasien baru
+    description: |
+      Registrasi khusus **Pasien**. Doctor/Nurse/Admin didaftarkan oleh Admin.
+      Dari Figma register screen: field Name, Email, Password, Password Confirmation.
+      Data profil lengkap (BPJS, tempat lahir, dll) dilengkapi via `PATCH /patients/me`.
+    operationId: registerPatient
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/RegisterRequest'
+          example:
+            name: "Ucok Sitorus"
+            email: "ucok@example.com"
+            password: "password123"
+            password_confirmation: "password123"
+            phone: "081234567890"
+    responses:
+      '201':
+        description: Registrasi berhasil
+        content:
+          application/json:
+            example:
+              message: "Registrasi berhasil. Silakan login."
+              data:
+                user_id: 10
+                email: "ucok@example.com"
+                role: "patient"
+                status: "active"
+                profile:
+                  patient_id: 5
+                  name: "Ucok Sitorus"
+                  phone: "081234567890"
+                  bpjs_number: null
+                  birth_place: null
+                  birth_date: null
+                  gender: null
+      '422':
+        description: Validasi gagal
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/common.yaml#/ValidationErrorResponse'
+            example:
+              message: "The given data was invalid."
+              errors:
+                email: ["The email has already been taken."]
+
+/auth/login:
+  post:
+    tags: [Authentication]
+    summary: Login — semua role (Patient, Doctor, Nurse, Admin)
+    description: |
+      Dari Figma login screen (admin & patient):
+      - Field: Email (`example@gmail.com`), Password (`@#*%`)
+      - Checkbox "Remember me" — implementasi di frontend (tidak di API)
+      - Link "Forgot Password?" — belum dalam scope
+
+      Mengembalikan Sanctum plain-text Bearer Token.
+    operationId: loginUser
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/auth.yaml#/LoginRequest'
+          example:
+            email: "ucok@example.com"
+            password: "password123"
+    responses:
+      '200':
+        description: Login berhasil — token dikembalikan
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/auth.yaml#/LoginResponse'
+            example:
+              message: "Login berhasil."
+              data:
+                token: "3|aB1cUcokD2eF3gH4iJ5kL6"
+                token_type: "Bearer"
+                user:
+                  user_id: 10
+                  email: "ucok@example.com"
+                  role: "patient"
+                  status: "active"
+                  profile:
+                    patient_id: 5
+                    name: "Ucok Sitorus"
+                    phone: "081234567890"
+                    bpjs_number: "0001234567890"
+                    birth_place: "Medan"
+                    birth_date: "1995-06-15"
+                    gender: "laki-laki"
+      '401':
+        description: Email atau password salah
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+            example: { message: "Email atau password salah." }
+      '422':
+        description: Validasi gagal
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ValidationErrorResponse' }
+
+/auth/logout:
+  post:
+    tags: [Authentication]
+    summary: Logout — revoke token aktif
+    operationId: logoutUser
+    security:
+      - sanctumToken: []
+    responses:
+      '200':
+        description: Logout berhasil
+        content:
+          application/json:
+            example: { message: "Logout berhasil." }
+      '401':
+        description: Token tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+            example: { message: "Unauthenticated." }
+
+/auth/me:
+  get:
+    tags: [Authentication]
+    summary: Ambil data user yang sedang login
+    description: |
+      Berguna untuk inisialisasi React SPA setelah refresh.
+      Profile bervariasi per role — lihat masing-masing Resource schema.
+    operationId: getAuthenticatedUser
+    security:
+      - sanctumToken: []
+    responses:
+      '200':
+        description: Data user
+        content:
+          application/json:
+            example:
+              data:
+                user_id: 10
+                email: "ucok@example.com"
+                role: "nurse"
+                status: "active"
+                profile:
+                  nurse_id: 2
+                  name: "Ucok Sihombing"
+                  sip_number: "112345678"
+                  gender: "laki-laki"
+                  birth_date: "1990-07-10"
+                  department:
+                    department_id: 1
+                    name: "Poli Umum"
+      '401':
+        description: Token tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
