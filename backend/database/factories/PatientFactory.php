@@ -18,7 +18,12 @@ class PatientFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name'        => $this->faker->name(),
+            'phone'       => $this->faker->numerify('08##########'),
+            'bpjs_number' => null,
+            'birth_place' => null,
+            'birth_date'  => null,
+            'gender'      => null,
         ];
     }
 }

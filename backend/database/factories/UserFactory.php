@@ -25,13 +25,17 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'role' => 'patient',
+            'status' => 'active',
             'remember_token' => Str::random(10),
         ];
     }
+
+//    public function doctor(): static
+//    public function nurse(): static
 
     /**
      * Indicate that the model's email address should be unverified.
