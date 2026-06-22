@@ -45,12 +45,11 @@ describe('RegisterPage', () => {
 
   it('renders all form fields and submit button', () => {
     renderRegisterPage();
-    expect(screen.getByLabelText('Nama Lengkap')).toBeInTheDocument();
+    expect(screen.getByLabelText('Full Name')).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
-    expect(screen.getByLabelText('No. Telepon')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
-    expect(screen.getByLabelText('Konfirmasi Password')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Daftar' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Confirm Password')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Register' })).toBeInTheDocument();
   });
 
   it('calls authService.register with form values on submit', async () => {
@@ -61,29 +60,25 @@ describe('RegisterPage', () => {
 
     renderRegisterPage();
 
-    fireEvent.change(screen.getByLabelText('Nama Lengkap'), {
+    fireEvent.change(screen.getByLabelText('Full Name'), {
       target: { value: 'Ucok Sitorus' },
     });
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'ucok@example.com' },
     });
-    fireEvent.change(screen.getByLabelText('No. Telepon'), {
-      target: { value: '081234567890' },
-    });
     fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'password123' },
     });
-    fireEvent.change(screen.getByLabelText('Konfirmasi Password'), {
+    fireEvent.change(screen.getByLabelText('Confirm Password'), {
       target: { value: 'password123' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Daftar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Register' }));
 
     await waitFor(() => {
       expect(authService.register).toHaveBeenCalledWith({
         name: 'Ucok Sitorus',
         email: 'ucok@example.com',
-        phone: '081234567890',
         password: 'password123',
         password_confirmation: 'password123',
       });
@@ -100,7 +95,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'ucok@example.com' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Daftar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Register' }));
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/login', {
@@ -123,7 +118,7 @@ describe('RegisterPage', () => {
     vi.mocked(authService.register).mockRejectedValueOnce(error);
 
     renderRegisterPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Daftar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Register' }));
 
     await waitFor(() => {
       expect(
@@ -136,7 +131,7 @@ describe('RegisterPage', () => {
     vi.mocked(authService.register).mockRejectedValueOnce(new Error('Network Error'));
 
     renderRegisterPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Daftar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Register' }));
 
     await waitFor(() => {
       expect(
@@ -151,10 +146,10 @@ describe('RegisterPage', () => {
     );
 
     renderRegisterPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Daftar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Register' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Mendaftar...' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Register...' })).toBeDisabled();
     });
   });
 });
