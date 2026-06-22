@@ -39,7 +39,7 @@ function renderLoginPage() {
 }
 
 const mockLoginResponse: { message: string; data: LoginResponseData } = {
-  message: 'Login berhasil.',
+  message: 'Login successful.',
   data: {
     token: 'test-token-123',
     token_type: 'Bearer',
@@ -70,7 +70,7 @@ describe('LoginPage', () => {
     renderLoginPage();
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Masuk' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();
   });
 
   it('calls authService.login with correct payload on submit', async () => {
@@ -84,7 +84,7 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'password123' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Masuk' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
       expect(authService.login).toHaveBeenCalledWith({
@@ -104,7 +104,7 @@ describe('LoginPage', () => {
     fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'password123' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Masuk' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
       expect(mockSetAuth).toHaveBeenCalledWith(mockLoginResponse.data);
@@ -123,7 +123,7 @@ describe('LoginPage', () => {
     vi.mocked(authService.login).mockRejectedValueOnce(error);
 
     renderLoginPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Masuk' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
       expect(
@@ -146,7 +146,7 @@ describe('LoginPage', () => {
     vi.mocked(authService.login).mockRejectedValueOnce(error);
 
     renderLoginPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Masuk' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
       expect(
@@ -161,10 +161,10 @@ describe('LoginPage', () => {
     );
 
     renderLoginPage();
-    fireEvent.click(screen.getByRole('button', { name: 'Masuk' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Masuk...' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Logging in...' })).toBeDisabled();
     });
   });
 

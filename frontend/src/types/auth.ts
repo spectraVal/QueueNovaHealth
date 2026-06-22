@@ -29,7 +29,7 @@ export interface PatientProfile {
     email: string;
     password: string;
     password_confirmation: string;
-    phone: string;
+    // phone: string;
   }
   
   export interface LoginPayload {
