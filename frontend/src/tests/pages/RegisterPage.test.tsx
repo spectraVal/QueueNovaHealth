@@ -19,7 +19,6 @@ const mockClearAuth = vi.fn<() => void>();
 
 const mockAuthContextValue = {
   user: null,
-  token: null,
   isAuthenticated: false,
   setAuth: mockSetAuth,
   clearAuth: mockClearAuth,
@@ -128,7 +127,9 @@ describe('RegisterPage', () => {
   });
 
   it('displays generic error on network failure', async () => {
-    vi.mocked(authService.register).mockRejectedValueOnce(new Error('Network Error'));
+    vi.mocked(authService.register).mockRejectedValueOnce(
+      new Error('Network Error')
+    );
 
     renderRegisterPage();
     fireEvent.click(screen.getByRole('button', { name: 'Register' }));
@@ -149,7 +150,9 @@ describe('RegisterPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Register' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Register...' })).toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: 'Register...' })
+      ).toBeDisabled();
     });
   });
 });

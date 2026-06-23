@@ -18,15 +18,14 @@ const mockSetAuth = vi.fn<(data: LoginResponseData) => void>();
 const mockClearAuth = vi.fn<() => void>();
 
 const mockAuthContextValue = {
-    user: null,
-    token: null,
-    isAuthenticated: false,
-    setAuth: mockSetAuth,
-    clearAuth: mockClearAuth,
-  } satisfies AuthState & {
-    setAuth: (data: LoginResponseData) => void;
-    clearAuth: () => void;
-  };
+  user: null,
+  isAuthenticated: false,
+  setAuth: mockSetAuth,
+  clearAuth: mockClearAuth,
+} satisfies AuthState & {
+  setAuth: (data: LoginResponseData) => void;
+  clearAuth: () => void;
+};
 
 function renderLoginPage() {
   return render(
@@ -39,10 +38,8 @@ function renderLoginPage() {
 }
 
 const mockLoginResponse: { message: string; data: LoginResponseData } = {
-  message: 'Login successful.',
+  message: 'Login berhasil.',
   data: {
-    token: 'test-token-123',
-    token_type: 'Bearer',
     user: {
       user_id: 10,
       email: 'ucok@example.com',
@@ -108,7 +105,9 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(mockSetAuth).toHaveBeenCalledWith(mockLoginResponse.data);
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', {
+        replace: true,
+      });
     });
   });
 
@@ -164,7 +163,9 @@ describe('LoginPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Logging in...' })).toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: 'Logging in...' })
+      ).toBeDisabled();
     });
   });
 
@@ -172,7 +173,10 @@ describe('LoginPage', () => {
     render(
       <MemoryRouter
         initialEntries={[
-          { pathname: '/login', state: { successMessage: 'Registrasi berhasil. Silakan login.' } },
+          {
+            pathname: '/login',
+            state: { successMessage: 'Registrasi berhasil. Silakan login.' },
+          },
         ]}
       >
         <AuthContext.Provider value={mockAuthContextValue}>
