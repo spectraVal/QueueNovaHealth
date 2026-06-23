@@ -9,19 +9,11 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
-axiosInstance.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem('__auth_token__');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Token expired / invalid — caller handles redirect
+      // Session expired — caller handles redirect
     }
     return Promise.reject(error);
   }

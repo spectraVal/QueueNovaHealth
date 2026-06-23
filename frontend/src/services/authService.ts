@@ -7,10 +7,17 @@ import type {
   ApiSuccessResponse,
 } from '../types/auth';
 
+const CSRF_COOKIE_URL = `${import.meta.env.VITE_API_BASE_URL}/sanctum/csrf-cookie`;
+
+async function initCsrf(): Promise<void> {
+  await axiosInstance.get(CSRF_COOKIE_URL, { baseURL: '' });
+}
+
 export const authService = {
   async register(
     payload: RegisterPayload
   ): Promise<ApiSuccessResponse<AuthUser>> {
+    await initCsrf();
     const response = await axiosInstance.post<ApiSuccessResponse<AuthUser>>(
       '/auth/register',
       payload
@@ -21,9 +28,11 @@ export const authService = {
   async login(
     payload: LoginPayload
   ): Promise<ApiSuccessResponse<LoginResponseData>> {
-    const response = await axiosInstance.post<
-ApiSuccessResponse<LoginResponseData>
->('/auth/login', payload);
+    await initCsrf();
+    const response = await axiosInstance.post<ApiSuccessResponse<LoginResponseData>>(
+      '/auth/login',
+      payload
+    );
     return response.data;
   },
 
