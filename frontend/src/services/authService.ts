@@ -39,4 +39,10 @@ export const authService = {
   async logout(): Promise<void> {
     await axiosInstance.post('/auth/logout');
   },
+
+  async getMe() : Promise<ApiSuccessResponse<AuthUser>> {
+    const response =
+      await axiosInstance.get<ApiSuccessResponse<AuthUser>>('/auth/me');
+    return response.data;
+  },
 };
