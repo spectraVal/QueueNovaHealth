@@ -4,6 +4,7 @@ import { PublicRoute } from './routes/PublicRoute';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
 
 function App() {
   return (
@@ -20,7 +21,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route
               path="/dashboard"
-              element={<div>Dashboard (placeholder)</div>}
+              element={<DashboardPage />}
             />
           </Route>
 
