@@ -1,0 +1,210 @@
+# =============================================================================
+# Paths — EPIC 2: Schedule Templates (Recurring)
+# [BARU v2.1] Menggantikan /doctors/{id}/schedules untuk bagian recurring
+#
+# Dari Figma admin-doctor-detail (tabel Schedule):
+# - Kolom: No., Hari (Senin/Selasa/dll), Pukul (09:00-15:00), Aksi (Delete/Edit)
+# - Tombol "Add Schedule" di atas tabel
+# Dari Figma admin-create/update-doctor-schedule:
+# - Form: Doctor Name, No SIP, Hari Praktek (dropdown hari), Waktu
+# =============================================================================
+
+/doctors/{id}/schedule-templates:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: "ID dokter"
+      schema: { type: integer, example: 1 }
+
+  get:
+    tags: [Schedule Templates]
+    summary: Lihat template jadwal dokter
+    description: |
+      Menampilkan semua template jadwal recurring dokter.
+      Dari Figma doctor-detail: tabel berisi Hari + Jam praktik.
+      Dapat diakses semua role yang login.
+    operationId: getDoctorScheduleTemplates
+    security:
+      - sanctumToken: []
+    responses:
+      '200':
+        description: Daftar template jadwal
+        content:
+          application/json:
+            example:
+              data:
+                - template_id: 1
+                  doctor_id: 1
+                  day_of_week: "senin"
+                  start_time: "09:00"
+                  end_time: "15:00"
+                  max_patients: 10
+                  is_active: true
+                  valid_from: "2025-08-01"
+                  valid_until: null
+                - template_id: 2
+                  doctor_id: 1
+                  day_of_week: "selasa"
+                  start_time: "09:00"
+                  end_time: "15:00"
+                  max_patients: 10
+                  is_active: true
+                  valid_from: "2025-08-01"
+                  valid_until: null
+                - template_id: 3
+                  doctor_id: 1
+                  day_of_week: "kamis"
+                  start_time: "09:00"
+                  end_time: "12:00"
+                  max_patients: 8
+                  is_active: true
+                  valid_from: "2025-08-01"
+                  valid_until: null
+      '404':
+        description: Dokter tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  post:
+    tags: [Schedule Templates]
+    summary: Tambah template jadwal dokter
+    description: |
+      **Admin only**. Dari Figma "Add Doctor's Schedule" form:
+      Doctor Name (read-only), No SIP (read-only), Hari Praktek (dropdown), Waktu.
+      Setelah template dibuat, Laravel Scheduler akan auto-generate instances
+      untuk 2 minggu ke depan.
+    operationId: createDoctorScheduleTemplate
+    security:
+      - sanctumToken: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/schedule.yaml#/ScheduleTemplateRequest' }
+          example:
+            day_of_week: "jumat"
+            start_time: "09:00"
+            end_time: "12:00"
+            max_patients: 10
+            is_active: true
+            valid_from: "2025-08-01"
+            valid_until: null
+    responses:
+      '201':
+        description: Template dibuat — instances akan di-generate otomatis
+        content:
+          application/json:
+            example:
+              message: "Template jadwal berhasil dibuat. Instances akan di-generate otomatis."
+              data:
+                template_id: 4
+                doctor_id: 1
+                day_of_week: "jumat"
+                start_time: "09:00"
+                end_time: "12:00"
+                max_patients: 10
+                is_active: true
+                valid_from: "2025-08-01"
+                valid_until: null
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '409':
+        description: Dokter sudah punya template aktif di hari yang sama
+        content:
+          application/json:
+            example: { message: "Dokter sudah memiliki jadwal aktif di hari Jumat." }
+      '422':
+        description: Validasi gagal
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ValidationErrorResponse' }
+
+/doctors/{id}/schedule-templates/{templateId}:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+    - name: templateId
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+
+  patch:
+    tags: [Schedule Templates]
+    summary: Update template jadwal
+    description: |
+      **Admin only**. Dari Figma "Update Doctor's Schedule" form.
+      Update template tidak mengubah instances yang sudah ada —
+      hanya mempengaruhi instances yang di-generate setelah update ini.
+    operationId: updateDoctorScheduleTemplate
+    security:
+      - sanctumToken: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/schedule.yaml#/ScheduleTemplateRequest' }
+          example:
+            start_time: "10:00"
+            end_time: "14:00"
+            max_patients: 8
+    responses:
+      '200':
+        description: Template diperbarui
+        content:
+          application/json:
+            example:
+              message: "Template jadwal berhasil diperbarui."
+              data:
+                template_id: 1
+                doctor_id: 1
+                day_of_week: "senin"
+                start_time: "10:00"
+                end_time: "14:00"
+                max_patients: 8
+                is_active: true
+                valid_from: "2025-08-01"
+                valid_until: null
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '404':
+        description: Template tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  delete:
+    tags: [Schedule Templates]
+    summary: Hapus template jadwal
+    description: |
+      **Admin only**. Menonaktifkan template (is_active = false) atau menghapus.
+      Instances yang sudah ada dan belum completed tidak dihapus otomatis.
+      Gunakan PATCH /schedule-instances/{id} untuk cancel instance per instance.
+    operationId: deleteDoctorScheduleTemplate
+    security:
+      - sanctumToken: []
+    responses:
+      '200':
+        description: Template dihapus
+        content:
+          application/json:
+            example: { message: "Template jadwal berhasil dihapus." }
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '404':
+        description: Template tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }

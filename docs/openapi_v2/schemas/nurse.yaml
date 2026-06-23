@@ -1,0 +1,116 @@
+# =============================================================================
+# Schemas — Nurse
+# [BARU v2.1] Dari Figma form Nurse:
+# - sip_number : field "No SIP" di form
+# - birth_date : field "Tanggal Lahir"
+# - gender     : field "Jenis Kelamin"
+# =============================================================================
+
+NurseResource:
+  type: object
+  properties:
+    nurse_id:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: "Ucok Sihombing"
+    # [BARU] dari Figma form nurse
+    sip_number:
+      type: string
+      nullable: true
+      description: "Nomor Surat Izin Praktik suster."
+      example: "112345678"
+    birth_date:
+      type: string
+      format: date
+      nullable: true
+      example: "1990-07-10"
+    gender:
+      type: string
+      nullable: true
+      enum: ["laki-laki", "perempuan"]
+      example: "perempuan"
+    # department nullable — nurse bisa lintas departemen
+    department:
+      type: object
+      nullable: true
+      properties:
+        department_id: { type: integer, example: 1 }
+        name: { type: string, example: "Poli Umum" }
+    user_id:
+      type: integer
+      example: 8
+    created_at:
+      type: string
+      format: date-time
+      example: "2025-01-15T08:00:00Z"
+    updated_at:
+      type: string
+      format: date-time
+      example: "2025-08-01T10:00:00Z"
+
+# Request body POST — Register Nurse (Admin)
+NurseRequest:
+  type: object
+  required: [name, email, password]
+  properties:
+    name:
+      type: string
+      maxLength: 255
+      example: "Ucok Sihombing"
+    email:
+      type: string
+      format: email
+      example: "ucok.nurse@hospital.com"
+    password:
+      type: string
+      format: password
+      minLength: 8
+      example: "password123"
+    # department_id opsional — nurse bisa lintas departemen
+    department_id:
+      type: integer
+      nullable: true
+      example: 1
+    # [BARU] field dari Figma
+    sip_number:
+      type: string
+      nullable: true
+      example: "112345678"
+    birth_date:
+      type: string
+      format: date
+      nullable: true
+      example: "1990-07-10"
+    gender:
+      type: string
+      nullable: true
+      enum: ["laki-laki", "perempuan"]
+      example: "perempuan"
+
+# Request body PATCH — Update Nurse (partial update)
+NurseUpdateRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      example: "Ucok Sihombing, S.Kep"
+    department_id:
+      type: integer
+      nullable: true
+      example: 2
+    sip_number:
+      type: string
+      nullable: true
+      example: "112345678"
+    birth_date:
+      type: string
+      format: date
+      nullable: true
+      example: "1990-07-10"
+    gender:
+      type: string
+      nullable: true
+      enum: ["laki-laki", "perempuan"]
+      example: "perempuan"

@@ -1,0 +1,184 @@
+# =============================================================================
+# Paths — EPIC 2: Departments
+# Dari Figma admin-department-dashboard: list card dengan nama + aksi Delete/Edit/Info
+# Dari Figma patient-view-department: card poli dengan nama, deskripsi, jumlah dokter
+# =============================================================================
+
+/departments:
+  get:
+    tags: [Departments]
+    summary: Lihat daftar departemen / poli
+    description: |
+      Semua role yang login dapat melihat daftar poli.
+      Pasien menggunakan ini sebagai halaman awal booking.
+      Dari Figma: menampilkan nama, deskripsi singkat, jumlah dokter tersedia.
+    operationId: getDepartments
+    security:
+      - sanctumToken: []
+    parameters:
+      - name: search
+        in: query
+        required: false
+        description: "Dari Figma: 'Cari dokter atau poli...'"
+        schema: { type: string, example: "Poli Umum" }
+    responses:
+      '200':
+        description: Daftar departemen
+        content:
+          application/json:
+            example:
+              data:
+                - department_id: 1
+                  name: "Poli Umum"
+                  description: "Pemeriksaan Kesehatan Umum"
+                  doctors_count: 3
+                - department_id: 2
+                  name: "Poli Mata"
+                  description: "Pemeriksaan Penglihatan dan Kesehatan Mata"
+                  doctors_count: 2
+                - department_id: 3
+                  name: "Poli Kebidanan dan Kandungan"
+                  description: "Pemeriksaan Kesehatan Kandungan"
+                  doctors_count: 2
+      '401':
+        description: Tidak terautentikasi
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  post:
+    tags: [Departments]
+    summary: Buat departemen baru
+    description: "**Admin only**. Dari Figma form: Department Name + Description."
+    operationId: createDepartment
+    security:
+      - sanctumToken: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/department.yaml#/DepartmentRequest' }
+          example:
+            name: "Poli Umum"
+            description: "Pusat layanan kesehatan primer untuk diagnosa awal, pengobatan umum, dan rujukan"
+    responses:
+      '201':
+        description: Departemen dibuat
+        content:
+          application/json:
+            example:
+              message: "Departemen berhasil dibuat."
+              data:
+                department_id: 4
+                name: "Poli Umum"
+                description: "Pusat layanan kesehatan primer untuk diagnosa awal, pengobatan umum, dan rujukan"
+                doctors_count: 0
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '422':
+        description: Validasi gagal
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ValidationErrorResponse' }
+
+/departments/{id}:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+
+  get:
+    tags: [Departments]
+    summary: Detail departemen + list dokter
+    description: |
+      Dari Figma admin-department-detail:
+      - Info: Nama poli, deskripsi panjang
+      - "List Dokter Poli Umum": tabel No., Nama Dokter, No SIP, Jenis Kelamin, Aksi
+    operationId: getDepartmentById
+    security:
+      - sanctumToken: []
+    responses:
+      '200':
+        description: Detail departemen
+        content:
+          application/json:
+            example:
+              data:
+                department_id: 1
+                name: "Poli Umum"
+                description: "Pusat layanan kesehatan primer untuk diagnosa awal, pengobatan umum, dan rujukan"
+                doctors_count: 4
+                doctors:
+                  - doctor_id: 1
+                    name: "dr. Ucok Napitupulu"
+                    sip_number: "12345"
+                    gender: "laki-laki"
+                  - doctor_id: 2
+                    name: "dr. Tirta Pengpeng"
+                    sip_number: "321321"
+                    gender: "laki-laki"
+      '404':
+        description: Tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  patch:
+    tags: [Departments]
+    summary: Update departemen
+    description: "**Admin only** — partial update. Dari Figma: field Department Name + Description."
+    operationId: updateDepartment
+    security:
+      - sanctumToken: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/department.yaml#/DepartmentRequest' }
+          example:
+            name: "Poli Umum & Gawat Darurat"
+    responses:
+      '200':
+        description: Departemen diperbarui
+        content:
+          application/json:
+            example:
+              message: "Departemen berhasil diperbarui."
+              data:
+                department_id: 1
+                name: "Poli Umum & Gawat Darurat"
+                description: "Pusat layanan kesehatan primer untuk diagnosa awal, pengobatan umum, dan rujukan"
+                doctors_count: 4
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '404':
+        description: Tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  delete:
+    tags: [Departments]
+    summary: Hapus departemen
+    description: "**Admin only**. Gagal jika masih ada dokter aktif."
+    operationId: deleteDepartment
+    security:
+      - sanctumToken: []
+    responses:
+      '200':
+        description: Dihapus
+        content:
+          application/json:
+            example: { message: "Departemen berhasil dihapus." }
+      '409':
+        description: Masih ada dokter aktif
+        content:
+          application/json:
+            example: { message: "Departemen tidak dapat dihapus karena masih memiliki dokter aktif." }

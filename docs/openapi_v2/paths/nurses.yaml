@@ -1,0 +1,197 @@
+# =============================================================================
+# Paths — EPIC 2: Nurses
+# Dari Figma admin-nurse-form: Nurse Name, No SIP, Jenis Kelamin,
+#   Tanggal Lahir, Email, Password
+# Dari Figma admin-nurse-detail: Informasi Nurse — Nama, No SIP, Jenis Kelamin, Email
+# =============================================================================
+
+/nurses:
+  get:
+    tags: [Nurses]
+    summary: Lihat daftar suster
+    description: "**Admin only**"
+    operationId: getNurses
+    security:
+      - sanctumToken: []
+    parameters:
+      - name: search
+        in: query
+        required: false
+        schema: { type: string, example: "Ucok" }
+      - name: department_id
+        in: query
+        required: false
+        schema: { type: integer, example: 1 }
+    responses:
+      '200':
+        description: Daftar suster
+        content:
+          application/json:
+            example:
+              data:
+                - nurse_id: 1
+                  name: "Ucok Sihombing"
+                  sip_number: "112345678"
+                  gender: "laki-laki"
+                  birth_date: "1990-07-10"
+                  department:
+                    department_id: 1
+                    name: "Poli Umum"
+                  user_id: 8
+                - nurse_id: 2
+                  name: "Bunda Rahma"
+                  sip_number: "123456789"
+                  gender: "perempuan"
+                  birth_date: "1988-03-15"
+                  department: null
+                  user_id: 9
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  post:
+    tags: [Nurses]
+    summary: Daftarkan suster baru
+    description: |
+      **Admin only**. Dari Figma form nurse:
+      Nurse Name, No SIP, Jenis Kelamin, Tanggal Lahir, Email, Password.
+    operationId: createNurse
+    security:
+      - sanctumToken: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/nurse.yaml#/NurseRequest' }
+          example:
+            name: "Ucok Sihombing"
+            email: "ucok.nurse@hospital.com"
+            password: "password123"
+            department_id: 1
+            sip_number: "112345678"
+            birth_date: "1990-07-10"
+            gender: "laki-laki"
+    responses:
+      '201':
+        description: Suster didaftarkan
+        content:
+          application/json:
+            example:
+              message: "Suster berhasil didaftarkan."
+              data:
+                nurse_id: 1
+                name: "Ucok Sihombing"
+                sip_number: "112345678"
+                gender: "laki-laki"
+                birth_date: "1990-07-10"
+                department:
+                  department_id: 1
+                  name: "Poli Umum"
+                user_id: 8
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '422':
+        description: Validasi gagal
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ValidationErrorResponse' }
+
+/nurses/{id}:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+
+  get:
+    tags: [Nurses]
+    summary: Detail suster
+    description: |
+      **Admin only**. Dari Figma admin-nurse-detail:
+      Informasi Nurse: No SIP, Jenis Kelamin, Email, Nama Nurse.
+    operationId: getNurseById
+    security:
+      - sanctumToken: []
+    responses:
+      '200':
+        description: Detail suster
+        content:
+          application/json:
+            example:
+              data:
+                nurse_id: 2
+                name: "Bunda Rahma"
+                sip_number: "123456789"
+                gender: "perempuan"
+                birth_date: "1988-03-15"
+                department: null
+                user_id: 9
+      '404':
+        description: Tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  patch:
+    tags: [Nurses]
+    summary: Update data suster
+    description: "**Admin only** — partial update."
+    operationId: updateNurse
+    security:
+      - sanctumToken: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/nurse.yaml#/NurseUpdateRequest' }
+          example:
+            name: "Bunda Rahma, S.Kep"
+            sip_number: "123456789"
+    responses:
+      '200':
+        description: Data diperbarui
+        content:
+          application/json:
+            example:
+              message: "Data suster berhasil diperbarui."
+              data:
+                nurse_id: 2
+                name: "Bunda Rahma, S.Kep"
+                sip_number: "123456789"
+                gender: "perempuan"
+                department: null
+                user_id: 9
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '404':
+        description: Tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  delete:
+    tags: [Nurses]
+    summary: Hapus suster
+    description: "**Admin only**. Hapus users + nurses."
+    operationId: deleteNurse
+    security:
+      - sanctumToken: []
+    responses:
+      '200':
+        description: Dihapus
+        content:
+          application/json:
+            example: { message: "Suster berhasil dihapus." }
+      '404':
+        description: Tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }

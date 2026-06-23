@@ -1,0 +1,44 @@
+@baseUrl = http://localhost:8000
+
+### User Data
+@name = Handika Testing
+@email = handika.testing@example.com
+@password = Password123!
+@phone = 081234567890
+
+### Sanctum
+@xsrfToken = eyJpdiI6IkV3S24vTEVqK3VLMWJyQ1hrV3hkOEE9PSIsInZhbHVlIjoiZFB3dGQ3azNUakZqWUxIZUEwdldUTjZIMFRJVW9LQUFwRlIxR2JxaWNDWHdtRzNwL1dRN1UyZlVBYW9JMGdtbHV5dVZHa0w0UGtRdUFaZDE0cTFQZEVDK2pyeGNtSWJRRUIzSk1lMndGdGtPNkpGY1M5ZWcvc3hDWVc2a2RKdUkiLCJtYWMiOiI4ZTkxZGYwNjNjOTg4MWIzZWJhYzk4N2ZiNzk3ZTE1MmM1OTQzYTMyMTVlZGE3M2Y0YzYwOThiNzM3N2Q2NWE4IiwidGFnIjoiIn0%3D
+@sessionCookie = eyJpdiI6IlVLTkxwTVNqbFk3UGhXNjFTNk5vd3c9PSIsInZhbHVlIjoibi9qWGhPNkRkalpLZkNsS01tWGlnMFpOenhPQktES1RZQ01hdThUT3BRM0cxdDRNek96amRQZk5CbWtYamZ6YWEyTXVpQ3huWEpESTl6UVlGUDErSXJMeE5KM0t0bUdMdm1XMmMrcHlkaklHdTJnSXozNzlKNndrckVSdTgwNmciLCJtYWMiOiIxZTU3ODljOWFjMjIyYWZlOGRkMGZlMjNiY2I0ODg0YjNiYmFjZDkwY2EyOTc1MzI1ZmYxZDU3NmZmMWU4YzIzIiwidGFnIjoiIn0%3D
+
+
+GET {{baseUrl}}/sanctum/csrf-cookie
+Origin: http://localhost:3000
+
+### Register User
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+Origin: http://localhost:3000
+X-XSRF-TOKEN: {{xsrfToken}}
+Cookie: XSRF-TOKEN={{xsrfToken}}; laravel-session={{sessionCookie}}
+
+{
+    "name": "{{name}}",
+    "email": "{{email}}",
+    "password": "{{password}}",
+    "password_confirmation": "{{password}}",
+    "phone": "{{phone}}"
+}
+
+
+### Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+Accept: application/json
+Origin: http://localhost:3000
+X-XSRF-TOKEN: {{xsrfToken}}
+Cookie: XSRF-TOKEN={{xsrfToken}}; laravel-session={{sessionCookie}}
+
+{
+    "email": "{{email}}",
+    "password": "{{password}}"
+}

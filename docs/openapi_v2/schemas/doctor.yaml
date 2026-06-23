@@ -1,0 +1,128 @@
+# =============================================================================
+# Schemas — Doctor
+# [BARU v2.1] Dari Figma form Doctor:
+# - sip_number   : field "No SIP" di form create/update doctor
+# - birth_date   : field "Tanggal Lahir" di form
+# - gender       : field "Jenis Kelamin" di form
+# Dari Figma doctor-detail: tabel schedule menampilkan Hari + Jam
+# Dari Figma doctor-queue-list: kolom tambahan Keluhan + Jenis Kelamin
+# =============================================================================
+
+DoctorResource:
+  type: object
+  properties:
+    doctor_id:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: "dr. Ucok Napitupulu, Sp.PD"
+    specialization:
+      type: string
+      example: "Spesialis Penyakit Dalam"
+    # [BARU] dari Figma form doctor
+    sip_number:
+      type: string
+      nullable: true
+      description: "Nomor Surat Izin Praktik dokter."
+      example: "112345678"
+    birth_date:
+      type: string
+      format: date
+      nullable: true
+      example: "1980-03-20"
+    gender:
+      type: string
+      nullable: true
+      enum: ["laki-laki", "perempuan"]
+      example: "laki-laki"
+    # doctor_status: dikelola DoctorDelayDetectionService (auto) dan Nurse/Admin (manual)
+    doctor_status:
+      type: string
+      enum: [active, late, absent]
+      example: "active"
+    department:
+      type: object
+      properties:
+        department_id: { type: integer, example: 1 }
+        name: { type: string, example: "Poli Umum" }
+    user_id:
+      type: integer
+      example: 5
+    created_at:
+      type: string
+      format: date-time
+      example: "2025-01-15T08:00:00Z"
+    updated_at:
+      type: string
+      format: date-time
+      example: "2025-08-01T10:00:00Z"
+
+# Request body POST — Register Doctor (Admin)
+# Membuat users + doctors sekaligus dalam satu transaksi
+DoctorRequest:
+  type: object
+  required: [name, email, password, specialization, department_id]
+  properties:
+    name:
+      type: string
+      maxLength: 255
+      example: "dr. Ucok Napitupulu, Sp.PD"
+    email:
+      type: string
+      format: email
+      example: "ucok.dokter@hospital.com"
+    password:
+      type: string
+      format: password
+      minLength: 8
+      example: "password123"
+    specialization:
+      type: string
+      example: "Spesialis Penyakit Dalam"
+    department_id:
+      type: integer
+      example: 1
+    # [BARU] field dari Figma
+    sip_number:
+      type: string
+      nullable: true
+      example: "112345678"
+    birth_date:
+      type: string
+      format: date
+      nullable: true
+      example: "1980-03-20"
+    gender:
+      type: string
+      nullable: true
+      enum: ["laki-laki", "perempuan"]
+      example: "laki-laki"
+
+# Request body PATCH — Update Doctor (partial update)
+DoctorUpdateRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      example: "dr. Ucok Napitupulu, Sp.PD"
+    specialization:
+      type: string
+      example: "Spesialis Penyakit Dalam"
+    department_id:
+      type: integer
+      example: 1
+    sip_number:
+      type: string
+      nullable: true
+      example: "112345678"
+    birth_date:
+      type: string
+      format: date
+      nullable: true
+      example: "1980-03-20"
+    gender:
+      type: string
+      nullable: true
+      enum: ["laki-laki", "perempuan"]
+      example: "laki-laki"
