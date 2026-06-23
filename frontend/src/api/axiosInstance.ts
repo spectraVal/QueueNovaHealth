@@ -1,5 +1,12 @@
 import axios, { AxiosError } from 'axios';
 
+function getCsrfToken(): string | null {
+  const match = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('XSRF-TOKEN='));
+  return match ? decodeURIComponent(match.split('=')[1]) : null;
+}
+
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   headers: {
@@ -7,6 +14,14 @@ const axiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true,
+});
+
+axiosInstance.interceptors.request.use((config) => {
+  const token = getCsrfToken();
+  if (token) {
+    config.headers['X-XSRF-TOKEN'] = token;
+  }
+  return config;
 });
 
 axiosInstance.interceptors.response.use(
