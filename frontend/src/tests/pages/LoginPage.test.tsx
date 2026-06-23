@@ -20,9 +20,11 @@ const mockClearAuth = vi.fn<() => void>();
 const mockAuthContextValue = {
   user: null,
   isAuthenticated: false,
+  isLoading: false,
   setAuth: mockSetAuth,
   clearAuth: mockClearAuth,
 } satisfies AuthState & {
+  isLoading: boolean;
   setAuth: (data: LoginResponseData) => void;
   clearAuth: () => void;
 };
