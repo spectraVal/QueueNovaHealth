@@ -28,7 +28,6 @@ export interface RegisterPayload {
   email: string;
   password: string;
   password_confirmation: string;
-  phone: string;
 }
 
 export interface LoginPayload {
