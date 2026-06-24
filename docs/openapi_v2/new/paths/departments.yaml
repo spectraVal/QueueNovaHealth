@@ -1,0 +1,223 @@
+# =============================================================================
+# Paths — EPIC 2: Departments
+# [v2.2] Auth: cookieAuth (laravel_session cookie) + X-XSRF-TOKEN header
+# =============================================================================
+
+/departments:
+  get:
+    tags: [Departments]
+    summary: Lihat daftar departemen / poli
+    description: |
+      Semua role yang login dapat melihat daftar poli.
+      Pasien menggunakan ini sebagai halaman awal booking.
+    operationId: getDepartments
+    security:
+      - cookieAuth: []
+    parameters:
+      - name: search
+        in: query
+        required: false
+        schema: { type: string, example: "Poli Umum" }
+    responses:
+      '200':
+        description: Daftar departemen
+        content:
+          application/json:
+            example:
+              data:
+                - department_id: 1
+                  name: "Poli Umum"
+                  description: "Pemeriksaan Kesehatan Umum"
+                  doctors_count: 3
+                - department_id: 2
+                  name: "Poli Mata"
+                  description: "Pemeriksaan Penglihatan dan Kesehatan Mata"
+                  doctors_count: 2
+                - department_id: 3
+                  name: "Poli Kebidanan dan Kandungan"
+                  description: "Pemeriksaan Kesehatan Kandungan"
+                  doctors_count: 2
+      '401':
+        description: Session tidak valid / belum login
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  post:
+    tags: [Departments]
+    summary: Buat departemen baru
+    description: "**Admin only**."
+    operationId: createDepartment
+    security:
+      - cookieAuth: []
+    parameters:
+      - $ref: '../schemas/common.yaml#/XSRFTokenHeader'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/department.yaml#/DepartmentRequest' }
+          example:
+            name: "Poli Umum"
+            description: "Pusat layanan kesehatan primer untuk diagnosa awal, pengobatan umum, dan rujukan"
+    responses:
+      '201':
+        description: Departemen dibuat
+        content:
+          application/json:
+            example:
+              message: "Departemen berhasil dibuat."
+              data:
+                department_id: 4
+                name: "Poli Umum"
+                description: "Pusat layanan kesehatan primer untuk diagnosa awal, pengobatan umum, dan rujukan"
+                doctors_count: 0
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '419':
+        description: CSRF token mismatch
+        content:
+          application/json:
+            example: { message: "CSRF token mismatch." }
+      '422':
+        description: Validasi gagal
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ValidationErrorResponse' }
+
+/departments/{id}:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+
+  get:
+    tags: [Departments]
+    summary: Detail departemen + list dokter
+    operationId: getDepartmentById
+    security:
+      - cookieAuth: []
+    responses:
+      '200':
+        description: Detail departemen
+        content:
+          application/json:
+            example:
+              data:
+                department_id: 1
+                name: "Poli Umum"
+                description: "Pusat layanan kesehatan primer untuk diagnosa awal, pengobatan umum, dan rujukan"
+                doctors_count: 4
+                doctors:
+                  - doctor_id: 1
+                    name: "dr. Ucok Napitupulu"
+                    sip_number: "12345"
+                    gender: "laki-laki"
+                  - doctor_id: 2
+                    name: "dr. Tirta Pengpeng"
+                    sip_number: "321321"
+                    gender: "laki-laki"
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '404':
+        description: Tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  patch:
+    tags: [Departments]
+    summary: Update departemen
+    description: "**Admin only** — partial update."
+    operationId: updateDepartment
+    security:
+      - cookieAuth: []
+    parameters:
+      - $ref: '../schemas/common.yaml#/XSRFTokenHeader'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/department.yaml#/DepartmentRequest' }
+          example:
+            name: "Poli Umum & Gawat Darurat"
+    responses:
+      '200':
+        description: Departemen diperbarui
+        content:
+          application/json:
+            example:
+              message: "Departemen berhasil diperbarui."
+              data:
+                department_id: 1
+                name: "Poli Umum & Gawat Darurat"
+                description: "Pusat layanan kesehatan primer untuk diagnosa awal, pengobatan umum, dan rujukan"
+                doctors_count: 4
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '404':
+        description: Tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '419':
+        description: CSRF token mismatch
+        content:
+          application/json:
+            example: { message: "CSRF token mismatch." }
+
+  delete:
+    tags: [Departments]
+    summary: Hapus departemen
+    description: "**Admin only**. Gagal jika masih ada dokter aktif."
+    operationId: deleteDepartment
+    security:
+      - cookieAuth: []
+    parameters:
+      - $ref: '../schemas/common.yaml#/XSRFTokenHeader'
+    responses:
+      '200':
+        description: Dihapus
+        content:
+          application/json:
+            example: { message: "Departemen berhasil dihapus." }
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '409':
+        description: Masih ada dokter aktif
+        content:
+          application/json:
+            example: { message: "Departemen tidak dapat dihapus karena masih memiliki dokter aktif." }
+      '419':
+        description: CSRF token mismatch
+        content:
+          application/json:
+            example: { message: "CSRF token mismatch." }

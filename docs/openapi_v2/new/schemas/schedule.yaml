@@ -1,0 +1,199 @@
+# =============================================================================
+# Schemas — Schedule (Template + Instance)
+# [BARU v2.1] Tabel schedules lama DIGANTI dengan sistem hybrid:
+#
+# ScheduleTemplate → recurring pattern (Hari + Jam, misal "Senin 08:00-12:00")
+# ScheduleInstance → tanggal aktual (misal "2025-08-18 08:00-12:00")
+#
+# Dari Figma admin-doctor-detail:
+# - Jadwal ditampilkan: Hari (Senin/Selasa/dll) + Jam (09:00-15:00)
+# - Ada tombol Edit + Delete per jadwal
+# - Tombol "Add Schedule" untuk tambah jadwal baru
+#
+# Dari Figma patien-view-detail-department:
+# - Pasien melihat: "Selasa - --/--/2026", "08:00", "Estimasi nomor antrian: 06"
+# - Instance yang ditampilkan ke pasien, bukan template
+# =============================================================================
+
+# ---- TEMPLATE ----
+
+ScheduleTemplateResource:
+  type: object
+  properties:
+    template_id:
+      type: integer
+      example: 1
+    doctor_id:
+      type: integer
+      example: 1
+    # Dari Figma: jadwal disimpan per hari (Senin, Selasa, dst)
+    day_of_week:
+      type: string
+      enum: [senin, selasa, rabu, kamis, jumat, sabtu, minggu]
+      example: "senin"
+    start_time:
+      type: string
+      description: "Format HH:MM"
+      example: "08:00"
+    end_time:
+      type: string
+      description: "Format HH:MM"
+      example: "12:00"
+    max_patients:
+      type: integer
+      example: 10
+    is_active:
+      type: boolean
+      description: "false = template tidak generate instance baru, tapi instance lama tetap valid"
+      example: true
+    valid_from:
+      type: string
+      format: date
+      description: "Tanggal template mulai berlaku"
+      example: "2025-08-01"
+    valid_until:
+      type: string
+      format: date
+      nullable: true
+      description: "Tanggal template berakhir. null = berlaku selamanya."
+      example: null
+    created_at:
+      type: string
+      format: date-time
+      example: "2025-07-01T00:00:00Z"
+
+# Request body POST/PATCH template
+ScheduleTemplateRequest:
+  type: object
+  required: [day_of_week, start_time, end_time]
+  properties:
+    day_of_week:
+      type: string
+      enum: [senin, selasa, rabu, kamis, jumat, sabtu, minggu]
+      example: "senin"
+    start_time:
+      type: string
+      description: "Format HH:MM"
+      example: "08:00"
+    end_time:
+      type: string
+      description: "Format HH:MM, harus setelah start_time"
+      example: "12:00"
+    max_patients:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 10
+      example: 10
+    is_active:
+      type: boolean
+      default: true
+      example: true
+    valid_from:
+      type: string
+      format: date
+      example: "2025-08-01"
+    valid_until:
+      type: string
+      format: date
+      nullable: true
+      example: null
+
+# ---- INSTANCE ----
+
+ScheduleInstanceResource:
+  type: object
+  properties:
+    instance_id:
+      type: integer
+      example: 1
+    template_id:
+      type: integer
+      nullable: true
+      description: "null jika instance manual tanpa template (jadwal insidental)"
+      example: 1
+    doctor_id:
+      type: integer
+      example: 1
+    # Info dokter untuk tampilan pasien (Figma: "dr. Gia Pratama", "POLI UMUM")
+    doctor:
+      type: object
+      properties:
+        name: { type: string, example: "dr. Ucok Napitupulu, Sp.PD" }
+        specialization: { type: string, example: "Spesialis Penyakit Dalam" }
+        department:
+          type: object
+          properties:
+            department_id: { type: integer, example: 1 }
+            name: { type: string, example: "Poli Umum" }
+    date:
+      type: string
+      format: date
+      description: "Tanggal aktual jadwal praktik"
+      example: "2025-08-18"
+    start_time:
+      type: string
+      example: "08:00"
+    end_time:
+      type: string
+      example: "12:00"
+    max_patients:
+      type: integer
+      example: 10
+    # Computed — dihitung runtime dari jumlah reservasi aktif
+    booked_slots:
+      type: integer
+      example: 4
+    available_slots:
+      type: integer
+      example: 6
+    # Dari Figma: "Estimasi nomor antrian: 06" — ditampilkan di card jadwal pasien
+    estimated_queue_number:
+      type: integer
+      description: "Estimasi nomor antrian yang akan didapat pasien jika booking sekarang (booked_slots + 1)"
+      example: 5
+    is_available:
+      type: boolean
+      description: "true jika available_slots > 0 dan tanggal belum lampau"
+      example: true
+    status:
+      type: string
+      enum: [active, cancelled, completed]
+      example: "active"
+    is_override:
+      type: boolean
+      description: "true jika admin mengubah data dari template asli"
+      example: false
+    override_note:
+      type: string
+      nullable: true
+      description: "Catatan alasan override oleh admin"
+      example: null
+
+# Request body untuk Admin override instance
+# Digunakan PATCH /schedule-instances/{id}
+ScheduleInstanceRequest:
+  type: object
+  properties:
+    start_time:
+      type: string
+      description: "Format HH:MM — override jam mulai"
+      example: "09:00"
+    end_time:
+      type: string
+      description: "Format HH:MM — override jam selesai"
+      example: "13:00"
+    max_patients:
+      type: integer
+      minimum: 1
+      example: 8
+    status:
+      type: string
+      enum: [active, cancelled]
+      description: "cancelled = batalkan instance ini (pasien booked akan dinotif)"
+      example: "active"
+    override_note:
+      type: string
+      nullable: true
+      description: "Alasan perubahan — ditampilkan di notifikasi pasien terdampak"
+      example: "Jam berubah karena acara rapat rumah sakit"

@@ -1,0 +1,75 @@
+# =============================================================================
+# Schemas — Common / Shared
+# [v2.2] Tambahan: XSRFTokenHeader reusable parameter
+# =============================================================================
+
+SuccessResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: "Operasi berhasil."
+
+ErrorResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: "Terjadi kesalahan."
+
+# Format default Laravel 422 validation error
+ValidationErrorResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: "The given data was invalid."
+    errors:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          type: string
+      example:
+        email: ["The email has already been taken."]
+        password: ["The password must be at least 8 characters."]
+
+# Format Laravel Resource Pagination
+PaginationMeta:
+  type: object
+  properties:
+    current_page: { type: integer, example: 1 }
+    per_page:     { type: integer, example: 10 }
+    total:        { type: integer, example: 35 }
+    last_page:    { type: integer, example: 4 }
+    from:         { type: integer, example: 1 }
+    to:           { type: integer, example: 10 }
+
+# [v2.2] Reusable parameter untuk header X-XSRF-TOKEN
+# Wajib disertakan di semua request POST, PATCH, DELETE.
+# Nilai = decrypt dari cookie XSRF-TOKEN yang di-set Laravel.
+# Diperbarui setelah: GET /sanctum/csrf-cookie, POST /auth/login, POST /auth/logout
+XSRFTokenHeader:
+  name: X-XSRF-TOKEN
+  in: header
+  required: true
+  description: |
+    Nilai dari cookie `XSRF-TOKEN` yang sudah **di-decrypt** oleh FE.
+
+    **Cara mendapatkan:**
+    1. Hit `GET /sanctum/csrf-cookie`
+    2. Baca nilai cookie `XSRF-TOKEN` (format encrypted Laravel)
+    3. **Decrypt** nilai tersebut (Laravel menggunakan AES-256-CBC)
+    4. Gunakan hasil decrypt sebagai nilai header ini
+
+    **Kapan diperbarui:**
+    - Setelah `GET /sanctum/csrf-cookie`
+    - Setelah `POST /auth/login`
+    - Setelah `POST /auth/logout`
+
+    **Catatan:** Untuk GET request yang read-only (tidak mengubah state),
+    header ini tetap disertakan sebagai best practice tapi tidak di-enforce Laravel
+    (kecuali dikonfigurasi berbeda).
+  schema:
+    type: string
+    example: "decrypted-xsrf-token-value-here"

@@ -1,0 +1,123 @@
+# =============================================================================
+# Schemas — Reservation
+# [BARU v2.1]:
+# - instance_id menggantikan schedule_id (FK ke schedule_instances)
+# - complaint (text, nullable) — dari Figma form Create Reservation
+#   Tampil di: form booking, detail reservasi, dan queue list dokter
+# =============================================================================
+
+ReservationResource:
+  type: object
+  properties:
+    reservation_id:
+      type: integer
+      example: 1
+    # status: derived dari queues.status via QueueObserver
+    # active    = queue belum done/no-show/cancelled
+    # completed = queue done
+    # cancelled = queue no-show atau cancelled
+    status:
+      type: string
+      enum: [active, completed, cancelled]
+      example: "active"
+    # [BARU] keluhan pasien — dari Figma "Keluhan Pasien" di form booking
+    complaint:
+      type: string
+      nullable: true
+      description: "Keluhan pasien yang diisi saat membuat reservasi. Ditampilkan di queue list dokter."
+      example: "Batuk dan pilek sudah 3 hari"
+    created_at:
+      type: string
+      format: date-time
+      example: "2025-08-10T09:00:00Z"
+    # Info pasien — muncul di detail reservasi dan di queue list dokter
+    patient:
+      type: object
+      properties:
+        patient_id: { type: integer, example: 5 }
+        name: { type: string, example: "Ucok Sitorus" }
+        gender:
+          type: string
+          nullable: true
+          example: "laki-laki"
+        bpjs_number:
+          type: string
+          nullable: true
+          example: "0001234567890"
+        birth_place:
+          type: string
+          nullable: true
+          example: "Medan"
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+          example: "1995-06-15"
+    doctor:
+      type: object
+      properties:
+        doctor_id: { type: integer, example: 1 }
+        name: { type: string, example: "dr. Ucok Napitupulu, Sp.PD" }
+        specialization: { type: string, example: "Spesialis Penyakit Dalam" }
+        department:
+          type: object
+          properties:
+            department_id: { type: integer, example: 1 }
+            name: { type: string, example: "Poli Umum" }
+    # Schedule info — dari instance (tanggal aktual)
+    schedule:
+      type: object
+      properties:
+        instance_id: { type: integer, example: 1 }
+        date: { type: string, format: date, example: "2025-08-18" }
+        start_time: { type: string, example: "08:00" }
+        end_time: { type: string, example: "12:00" }
+        # Dari Figma: "Dianjurkan datang pada 15:45 untuk check-in"
+        recommended_checkin_time:
+          type: string
+          description: "15 menit sebelum start_time — ditampilkan di detail reservasi Figma"
+          example: "07:45"
+    # Queue — real-time, di-join ke reservations
+    queue:
+      type: object
+      properties:
+        queue_id: { type: integer, example: 1 }
+        queue_number: { type: integer, example: 4 }
+        status:
+          type: string
+          enum: [booked, checked-in, waiting, called, in-progress, done, no-show, cancelled]
+          example: "waiting"
+        estimated_wait_minutes:
+          type: integer
+          nullable: true
+          example: 25
+        # Dari Figma: "Estimasi nomor antrian: 16" — ditampilkan di card history
+        estimated_queue_number:
+          type: integer
+          description: "Nomor antrian estimasi — sama dengan queue_number setelah booking"
+          example: 16
+
+# Request body POST — Create Reservation (Patient only)
+# [BARU v2.1]: instance_id menggantikan schedule_id
+# complaint ditambahkan — wajib diisi saat booking
+ReservationRequest:
+  type: object
+  required: [instance_id]
+  properties:
+    # FK ke schedule_instances — bukan schedule_templates
+    # Pasien booking ke tanggal aktual (instance), bukan template recurring
+    instance_id:
+      type: integer
+      description: |
+        ID jadwal aktual (schedule_instances.instance_id).
+        doctor_id diambil otomatis dari instance.doctor_id di backend.
+        Validasi: slot tersedia, tidak double booking, tanggal belum lampau,
+        instance.status = active.
+      example: 1
+    # [BARU] dari Figma form Create Reservation
+    complaint:
+      type: string
+      nullable: true
+      description: "Keluhan pasien. Opsional tapi direkomendasikan untuk diisi."
+      maxLength: 1000
+      example: "Batuk dan pilek sudah 3 hari, disertai demam ringan"
