@@ -19,7 +19,7 @@ class AuthService implements \App\Services\AuthService
         Patient::create([
             'user_id' => $user->id,
             'name'    => $data['name'],
-            'phone'   => $data['phone'],
+//            'phone'   => $data['phone'],
         ]);
 
         return $user->load('patient');

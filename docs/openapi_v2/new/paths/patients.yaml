@@ -1,0 +1,100 @@
+# =============================================================================
+# Paths — Patient Profile
+# [v2.2] Auth: cookieAuth + X-XSRF-TOKEN header untuk PATCH
+# =============================================================================
+
+/patients/me:
+  get:
+    tags: [Patient Profile]
+    summary: Lihat profil pasien yang sedang login
+    operationId: getMyPatientProfile
+    security:
+      - cookieAuth: []
+    responses:
+      '200':
+        description: Profil pasien
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: '../schemas/patient.yaml#/PatientProfileResource'
+            example:
+              data:
+                patient_id: 5
+                name: "Ucok Sitorus"
+                phone: "081234567890"
+                bpjs_number: "0001234567890"
+                birth_place: "Medan"
+                birth_date: "1995-06-15"
+                gender: "laki-laki"
+                user_id: 10
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '403':
+        description: Bukan role patient
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+            example: { message: "Endpoint ini hanya untuk pasien." }
+
+  patch:
+    tags: [Patient Profile]
+    summary: Update profil pasien sendiri
+    description: "Partial update — kirim hanya field yang ingin diubah."
+    operationId: updateMyPatientProfile
+    security:
+      - cookieAuth: []
+    parameters:
+      - $ref: '../schemas/common.yaml#/XSRFTokenHeader'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/patient.yaml#/PatientProfileRequest'
+          example:
+            bpjs_number: "0001234567890"
+            birth_place: "Medan"
+            birth_date: "1995-06-15"
+            gender: "laki-laki"
+    responses:
+      '200':
+        description: Profil berhasil diperbarui
+        content:
+          application/json:
+            example:
+              message: "Profil berhasil diperbarui."
+              data:
+                patient_id: 5
+                name: "Ucok Sitorus"
+                phone: "081234567890"
+                bpjs_number: "0001234567890"
+                birth_place: "Medan"
+                birth_date: "1995-06-15"
+                gender: "laki-laki"
+                user_id: 10
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '403':
+        description: Bukan role patient
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '419':
+        description: CSRF token mismatch
+        content:
+          application/json:
+            example: { message: "CSRF token mismatch." }
+      '422':
+        description: Validasi gagal
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ValidationErrorResponse' }

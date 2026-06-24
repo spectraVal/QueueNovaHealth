@@ -1,0 +1,252 @@
+# =============================================================================
+# Paths — EPIC 2: Doctors
+# [v2.2] Auth: cookieAuth + X-XSRF-TOKEN header untuk mutating requests
+# =============================================================================
+
+/doctors:
+  get:
+    tags: [Doctors]
+    summary: Lihat daftar dokter
+    operationId: getDoctors
+    security:
+      - cookieAuth: []
+    parameters:
+      - name: department_id
+        in: query
+        required: false
+        schema: { type: integer, example: 1 }
+      - name: search
+        in: query
+        required: false
+        schema: { type: string, example: "dr. Ucok" }
+    responses:
+      '200':
+        description: Daftar dokter
+        content:
+          application/json:
+            example:
+              data:
+                - doctor_id: 1
+                  name: "dr. Ucok Napitupulu, Sp.PD"
+                  specialization: "Spesialis Penyakit Dalam"
+                  sip_number: "112345678"
+                  gender: "laki-laki"
+                  birth_date: "1980-03-20"
+                  doctor_status: "active"
+                  department:
+                    department_id: 1
+                    name: "Poli Umum"
+                  user_id: 5
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  post:
+    tags: [Doctors]
+    summary: Daftarkan dokter baru
+    description: "**Admin only**."
+    operationId: createDoctor
+    security:
+      - cookieAuth: []
+    parameters:
+      - $ref: '../schemas/common.yaml#/XSRFTokenHeader'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/doctor.yaml#/DoctorRequest' }
+          example:
+            name: "dr. Ucok Napitupulu, Sp.PD"
+            email: "ucok.dokter@hospital.com"
+            password: "password123"
+            specialization: "Spesialis Penyakit Dalam"
+            department_id: 1
+            sip_number: "112345678"
+            birth_date: "1980-03-20"
+            gender: "laki-laki"
+    responses:
+      '201':
+        description: Dokter didaftarkan
+        content:
+          application/json:
+            example:
+              message: "Dokter berhasil didaftarkan."
+              data:
+                doctor_id: 1
+                name: "dr. Ucok Napitupulu, Sp.PD"
+                specialization: "Spesialis Penyakit Dalam"
+                sip_number: "112345678"
+                gender: "laki-laki"
+                birth_date: "1980-03-20"
+                doctor_status: "active"
+                department:
+                  department_id: 1
+                  name: "Poli Umum"
+                user_id: 5
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '419':
+        description: CSRF token mismatch
+        content:
+          application/json:
+            example: { message: "CSRF token mismatch." }
+      '422':
+        description: Validasi gagal
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ValidationErrorResponse' }
+
+/doctors/{id}:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+
+  get:
+    tags: [Doctors]
+    summary: Detail dokter + daftar template jadwal
+    operationId: getDoctorById
+    security:
+      - cookieAuth: []
+    responses:
+      '200':
+        description: Detail dokter
+        content:
+          application/json:
+            example:
+              data:
+                doctor_id: 1
+                name: "dr. Ucok Napitupulu, Sp.PD"
+                specialization: "Spesialis Penyakit Dalam"
+                sip_number: "112345678"
+                gender: "laki-laki"
+                birth_date: "1980-03-20"
+                doctor_status: "active"
+                department:
+                  department_id: 1
+                  name: "Poli Umum"
+                user_id: 5
+                schedule_templates:
+                  - template_id: 1
+                    day_of_week: "senin"
+                    start_time: "09:00"
+                    end_time: "15:00"
+                    max_patients: 10
+                    is_active: true
+                  - template_id: 2
+                    day_of_week: "selasa"
+                    start_time: "09:00"
+                    end_time: "15:00"
+                    max_patients: 10
+                    is_active: true
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '404':
+        description: Tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  patch:
+    tags: [Doctors]
+    summary: Update data dokter
+    description: "**Admin only** — partial update."
+    operationId: updateDoctor
+    security:
+      - cookieAuth: []
+    parameters:
+      - $ref: '../schemas/common.yaml#/XSRFTokenHeader'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/doctor.yaml#/DoctorUpdateRequest' }
+          example:
+            specialization: "Spesialis Penyakit Dalam & Konsultan Ginjal"
+            sip_number: "112345679"
+    responses:
+      '200':
+        description: Data diperbarui
+        content:
+          application/json:
+            example:
+              message: "Data dokter berhasil diperbarui."
+              data:
+                doctor_id: 1
+                name: "dr. Ucok Napitupulu, Sp.PD"
+                specialization: "Spesialis Penyakit Dalam & Konsultan Ginjal"
+                sip_number: "112345679"
+                doctor_status: "active"
+                department:
+                  department_id: 1
+                  name: "Poli Umum"
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '404':
+        description: Tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '419':
+        description: CSRF token mismatch
+        content:
+          application/json:
+            example: { message: "CSRF token mismatch." }
+
+  delete:
+    tags: [Doctors]
+    summary: Hapus dokter
+    description: "**Admin only**. Hapus users + doctors. Gagal jika ada reservasi aktif."
+    operationId: deleteDoctor
+    security:
+      - cookieAuth: []
+    parameters:
+      - $ref: '../schemas/common.yaml#/XSRFTokenHeader'
+    responses:
+      '200':
+        description: Dihapus
+        content:
+          application/json:
+            example: { message: "Dokter berhasil dihapus." }
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '409':
+        description: Masih ada reservasi aktif
+        content:
+          application/json:
+            example: { message: "Dokter tidak dapat dihapus karena masih memiliki reservasi aktif." }
+      '419':
+        description: CSRF token mismatch
+        content:
+          application/json:
+            example: { message: "CSRF token mismatch." }

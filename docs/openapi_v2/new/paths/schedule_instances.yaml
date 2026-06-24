@@ -1,0 +1,182 @@
+# =============================================================================
+# Paths — EPIC 2/3: Schedule Instances (Tanggal Aktual)
+# [v2.2] Auth: cookieAuth + X-XSRF-TOKEN header untuk PATCH
+# =============================================================================
+
+/schedule-instances:
+  get:
+    tags: [Schedule Instances]
+    summary: Lihat jadwal aktual tersedia
+    description: |
+      Pasien menggunakan ini untuk melihat jadwal sebelum booking.
+      Default: hanya instances dengan `status = active` dan `date >= today`.
+    operationId: getScheduleInstances
+    security:
+      - cookieAuth: []
+    parameters:
+      - name: department_id
+        in: query
+        required: false
+        schema: { type: integer, example: 1 }
+      - name: doctor_id
+        in: query
+        required: false
+        schema: { type: integer, example: 1 }
+      - name: date
+        in: query
+        required: false
+        schema: { type: string, format: date, example: "2025-08-18" }
+      - name: from_date
+        in: query
+        required: false
+        schema: { type: string, format: date, example: "2025-08-18" }
+      - name: to_date
+        in: query
+        required: false
+        schema: { type: string, format: date, example: "2025-09-01" }
+    responses:
+      '200':
+        description: Daftar jadwal aktual
+        content:
+          application/json:
+            example:
+              data:
+                - instance_id: 1
+                  template_id: 1
+                  doctor_id: 1
+                  doctor:
+                    name: "dr. Ucok Napitupulu, Sp.PD"
+                    specialization: "Spesialis Penyakit Dalam"
+                    department:
+                      department_id: 1
+                      name: "Poli Umum"
+                  date: "2025-08-18"
+                  start_time: "08:00"
+                  end_time: "12:00"
+                  max_patients: 10
+                  booked_slots: 5
+                  available_slots: 5
+                  estimated_queue_number: 6
+                  is_available: true
+                  status: "active"
+                  is_override: false
+                  override_note: null
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+/schedule-instances/{instanceId}:
+  parameters:
+    - name: instanceId
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+
+  get:
+    tags: [Schedule Instances]
+    summary: Detail satu schedule instance
+    operationId: getScheduleInstanceById
+    security:
+      - cookieAuth: []
+    responses:
+      '200':
+        description: Detail instance
+        content:
+          application/json:
+            example:
+              data:
+                instance_id: 1
+                template_id: 1
+                doctor_id: 1
+                doctor:
+                  name: "dr. Ucok Napitupulu, Sp.PD"
+                  specialization: "Spesialis Penyakit Dalam"
+                  department:
+                    department_id: 1
+                    name: "Poli Umum"
+                date: "2025-08-18"
+                start_time: "08:00"
+                end_time: "12:00"
+                max_patients: 10
+                booked_slots: 5
+                available_slots: 5
+                estimated_queue_number: 6
+                is_available: true
+                status: "active"
+                is_override: false
+                override_note: null
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '404':
+        description: Tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  patch:
+    tags: [Schedule Instances]
+    summary: Override atau cancel satu instance
+    description: |
+      **Admin only**. Override jam/kapasitas atau cancel instance tertentu.
+      Jika `status = cancelled`: reservasi booked dibatalkan + notifikasi ke pasien.
+    operationId: updateScheduleInstance
+    security:
+      - cookieAuth: []
+    parameters:
+      - $ref: '../schemas/common.yaml#/XSRFTokenHeader'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/schedule.yaml#/ScheduleInstanceRequest' }
+          example:
+            start_time: "09:00"
+            end_time: "13:00"
+            override_note: "Jam diubah karena rapat koordinasi dokter"
+    responses:
+      '200':
+        description: Instance diperbarui
+        content:
+          application/json:
+            example:
+              message: "Jadwal berhasil diperbarui."
+              data:
+                instance_id: 1
+                date: "2025-08-18"
+                start_time: "09:00"
+                end_time: "13:00"
+                max_patients: 10
+                status: "active"
+                is_override: true
+                override_note: "Jam diubah karena rapat koordinasi dokter"
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '404':
+        description: Instance tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '409':
+        description: Ada pasien aktif (checked-in/waiting/called/in-progress)
+        content:
+          application/json:
+            example:
+              message: "Jadwal tidak dapat diubah karena ada pasien yang sedang aktif di klinik."
+      '419':
+        description: CSRF token mismatch
+        content:
+          application/json:
+            example: { message: "CSRF token mismatch." }

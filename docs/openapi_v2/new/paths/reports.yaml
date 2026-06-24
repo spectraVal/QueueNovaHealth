@@ -1,0 +1,85 @@
+# =============================================================================
+# Paths — EPIC 4: Reports
+# [v2.2] Auth: cookieAuth (read-only, tidak perlu X-XSRF-TOKEN)
+# =============================================================================
+
+/reports/queues:
+  get:
+    tags: [Reports]
+    summary: Laporan antrian berdasarkan periode (Admin)
+    description: "**Admin only**."
+    operationId: getQueueReports
+    security:
+      - cookieAuth: []
+    parameters:
+      - name: period
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [all, current_month, monthly, yearly]
+          example: "monthly"
+      - name: date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+          example: "2025-08-01"
+      - name: department_id
+        in: query
+        required: false
+        schema: { type: integer, example: 1 }
+      - name: doctor_id
+        in: query
+        required: false
+        schema: { type: integer, example: 1 }
+    responses:
+      '200':
+        description: Laporan antrian
+        content:
+          application/json:
+            schema: { $ref: '../schemas/queue.yaml#/QueueReportResource' }
+            example:
+              data:
+                period: "monthly"
+                period_label: "Agustus 2025"
+                date_range:
+                  from: "2025-08-01"
+                  to: "2025-08-31"
+                summary:
+                  total_reservations: 240
+                  completed: 180
+                  cancelled: 10
+                  active: 50
+                  today_total: 24
+                by_department:
+                  - department_id: 1
+                    department_name: "Poli Umum"
+                    total: 100
+                    completed: 75
+                    cancelled: 5
+                    active: 20
+                by_doctor:
+                  - doctor_id: 1
+                    doctor_name: "dr. Ucok Napitupulu, Sp.PD"
+                    department_name: "Poli Umum"
+                    total: 60
+                    completed: 45
+                    cancelled: 3
+                    active: 12
+      '401':
+        description: Session tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            example: { message: "Akses ditolak. Endpoint ini hanya untuk admin." }
+      '422':
+        description: Parameter tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ValidationErrorResponse' }
