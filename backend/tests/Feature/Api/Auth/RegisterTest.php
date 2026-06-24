@@ -21,7 +21,6 @@ class RegisterTest extends TestCase
             'email'                 => 'handika@example.com',
             'password'              => 'Password123!',
             'password_confirmation' => 'Password123!',
-            'phone'                 => '081234567890',
         ];
 
         $response = $this->postJson($this->endpoint, $payload);
@@ -37,7 +36,6 @@ class RegisterTest extends TestCase
                     'profile' => [
                         'patient_id',
                         'name',
-                        'phone',
                         'bpjs_number',
                         'birth_place',
                         'birth_date',
@@ -49,8 +47,7 @@ class RegisterTest extends TestCase
             ->assertJsonPath('data.email', 'handika@example.com')
             ->assertJsonPath('data.role', 'patient')
             ->assertJsonPath('data.status', 'active')
-            ->assertJsonPath('data.profile.name', 'Handika Testing')
-            ->assertJsonPath('data.profile.phone', '081234567890');
+            ->assertJsonPath('data.profile.name', 'Handika Testing');
 
         $this->assertDatabaseHas('users', [
             'email' => 'handika@example.com',
@@ -62,7 +59,6 @@ class RegisterTest extends TestCase
         $this->assertDatabaseHas('patients', [
             'user_id' => $user->id,
             'name'    => 'Handika Testing',
-            'phone'   => '081234567890',
         ]);
     }
 
@@ -73,7 +69,6 @@ class RegisterTest extends TestCase
             'email'                 => 'handika@example.com',
             'password'              => 'Password123!',
             'password_confirmation' => 'Password123!',
-            'phone'                 => '081234567890',
         ];
 
         $this->postJson($this->endpoint, $payload);
@@ -93,7 +88,6 @@ class RegisterTest extends TestCase
             'email'                 => 'handika@example.com',
             'password'              => 'Password123!',
             'password_confirmation' => 'Password123!',
-            'phone'                 => '081234567890',
         ];
 
         $response = $this->postJson($this->endpoint, $payload);
@@ -109,7 +103,6 @@ class RegisterTest extends TestCase
             'email'                 => 'handika@example.com',
             'password'              => 'Password123!',
             'password_confirmation' => 'WrongPassword!',
-            'phone'                 => '081234567890',
         ];
 
         $response = $this->postJson($this->endpoint, $payload);
@@ -125,7 +118,6 @@ class RegisterTest extends TestCase
             'email'                 => 'handika@example.com',
             'password'              => 'short',
             'password_confirmation' => 'short',
-            'phone'                 => '081234567890',
         ];
 
         $response = $this->postJson($this->endpoint, $payload);
@@ -142,7 +134,6 @@ class RegisterTest extends TestCase
             'email'                 => 'handika@example.com',
             'password'              => 'Password123!',
             'password_confirmation' => 'Password123!',
-            'phone'                 => '081234567890',
         ];
 
         unset($payload[$field]);
@@ -159,7 +150,6 @@ class RegisterTest extends TestCase
             'missing name'     => ['name'],
             'missing email'    => ['email'],
             'missing password' => ['password'],
-            'missing phone'    => ['phone'],
         ];
     }
 
@@ -170,7 +160,6 @@ class RegisterTest extends TestCase
             'email'                 => 'not-an-email',
             'password'              => 'Password123!',
             'password_confirmation' => 'Password123!',
-            'phone'                 => '081234567890',
         ];
 
         $response = $this->postJson($this->endpoint, $payload);
@@ -186,7 +175,6 @@ class RegisterTest extends TestCase
             'email'                 => 'not-an-email',
             'password'              => 'Password123!',
             'password_confirmation' => 'Password123!',
-            'phone'                 => '081234567890',
         ];
 
         $this->postJson($this->endpoint, $payload);
