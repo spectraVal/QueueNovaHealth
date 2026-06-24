@@ -1,0 +1,46 @@
+# =============================================================================
+# Schemas — Department
+# Dari Figma: card poli menampilkan nama, deskripsi, jumlah dokter tersedia
+# Screen: patient-view-department — "3 dokter tersedia", "Poli Umum"
+# =============================================================================
+
+DepartmentResource:
+  type: object
+  properties:
+    department_id:
+      type: integer
+      example: 1
+    name:
+      type: string
+      example: "Poli Umum"
+    description:
+      type: string
+      nullable: true
+      # Dari Figma: "Pemeriksaan Kesehatan Umum" — deskripsi singkat di card
+      example: "Pusat layanan kesehatan primer untuk diagnosa awal, pengobatan umum, dan rujukan"
+    # Dari Figma: card menampilkan "3 dokter tersedia" — computed field
+    doctors_count:
+      type: integer
+      description: "Jumlah dokter aktif di departemen ini."
+      example: 3
+    created_at:
+      type: string
+      format: date-time
+      example: "2025-01-01T00:00:00Z"
+    updated_at:
+      type: string
+      format: date-time
+      example: "2025-08-01T10:00:00Z"
+
+# Digunakan untuk POST create dan PATCH update (partial)
+DepartmentRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      maxLength: 255
+      example: "Poli Umum"
+    description:
+      type: string
+      nullable: true
+      example: "Pusat layanan kesehatan primer untuk diagnosa awal, pengobatan umum, dan rujukan"

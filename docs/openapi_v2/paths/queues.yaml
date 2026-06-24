@@ -1,0 +1,193 @@
+# =============================================================================
+# Paths — EPIC 4: Queue
+# Dari Figma nurse-queue-list:
+# - Header: "Poli Anda hari ini", "Lihat dan kelola semua bagian Anda"
+# - Jadwal cards: Poli + Jam + Total Antrian + "Yang sudah check-in"
+# - Filter tabs: Semua | Booked | Called | Done
+# - Tabel: No. Antrian, Nama Pasien, Status, Estimasi Waktu Tunggu, Catatan
+# Dari Figma nurse-chaos-mode:
+# - Card alert: "TERLAMBAT 25 MENIT", nama dokter, tombol "BERITAHU PASIEN"
+# - "Poli yang tersedia untuk perpindahan pasien" + slot antrian
+# Dari Figma doctor-queue-list:
+# - Kolom tambahan: Keluhan, Hasil Skrining, Jenis Kelamin
+# =============================================================================
+
+/queues:
+  get:
+    tags: [Queue]
+    summary: Lihat daftar antrian (Nurse & Doctor)
+    description: |
+      **Nurse**: melihat semua antrian hari ini, terkelompok per schedule instance.
+      **Doctor**: hanya antrian jadwal miliknya (filter by doctor_id dari token).
+
+      Dari Figma nurse-queue-list: antrian dikelompokkan per jadwal
+      (misal "Poli Umum 08:00-09:45", "Poli Umum 10:00-11:45").
+
+      Response menyertakan `schedule_summary` per instance dan `queue_items` per antrian.
+    operationId: getQueue
+    security:
+      - sanctumToken: []
+    parameters:
+      - name: date
+        in: query
+        description: "Filter by tanggal. Default: hari ini."
+        required: false
+        schema: { type: string, format: date, example: "2025-08-15" }
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [booked, checked-in, waiting, called, in-progress, done, no-show, cancelled]
+      - name: instance_id
+        in: query
+        required: false
+        description: "Filter by jadwal tertentu"
+        schema: { type: integer, example: 1 }
+    responses:
+      '200':
+        description: Daftar antrian
+        content:
+          application/json:
+            example:
+              data:
+                # Grouped by schedule instance — dari Figma
+                - instance_id: 1
+                  schedule_summary:
+                    department_name: "Poli Umum"
+                    start_time: "08:00"
+                    end_time: "09:45"
+                    total_antrian: 20
+                    checked_in_count: 15
+                  queue_items:
+                    - queue_id: 1
+                      queue_number: 1
+                      status: "called"
+                      estimated_wait_minutes: 0
+                      nurse_notes: null
+                      reservation:
+                        reservation_id: 1
+                        complaint: "Batuk dan pilek"
+                        patient:
+                          patient_id: 1
+                          name: "Muhamad Rival Maulana"
+                          gender: "laki-laki"
+                          phone: "081234567890"
+                        schedule:
+                          instance_id: 1
+                          date: "2025-08-15"
+                          start_time: "08:00"
+                          end_time: "09:45"
+                    - queue_id: 2
+                      queue_number: 2
+                      status: "waiting"
+                      estimated_wait_minutes: 15
+                      nurse_notes: null
+                      reservation:
+                        reservation_id: 2
+                        complaint: "Demam"
+                        patient:
+                          patient_id: 2
+                          name: "Handika Chandra Pratama"
+                          gender: "laki-laki"
+                          phone: "082345678901"
+                        schedule:
+                          instance_id: 1
+                          date: "2025-08-15"
+                          start_time: "08:00"
+                          end_time: "09:45"
+      '403':
+        description: Bukan Nurse atau Doctor
+        content:
+          application/json:
+            example: { message: "Akses ditolak. Endpoint ini hanya untuk nurse dan doctor." }
+
+/queues/{id}/status:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema: { type: integer, example: 2 }
+
+  patch:
+    tags: [Queue]
+    summary: Update status antrian (Nurse only)
+    description: |
+      **Nurse only**. Dari Figma: nurse klik pasien di list → update status.
+
+      Transisi valid:
+      ```
+      booked      → checked-in
+      checked-in  → waiting
+      waiting     → called      (trigger notif ke pasien)
+      waiting     → no-show
+      called      → in-progress
+      in-progress → done
+      booked/checked-in → cancelled
+      ```
+
+      Nurse dapat menambahkan `nurse_notes` — tampil sebagai "Catatan" di nurse queue
+      dan "Hasil Skrining" di doctor queue (dari Figma).
+
+      Setelah update, sistem otomatis:
+      1. Sync `reservations.status` via QueueObserver
+      2. Recalculate estimasi antrian semua pasien di instance yang sama
+      3. Kirim notifikasi ke pasien jika status = `called`
+    operationId: updateQueueStatus
+    security:
+      - sanctumToken: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/queue.yaml#/QueueStatusRequest' }
+          example:
+            status: "called"
+            nurse_notes: "Pasien sudah siap, tekanan darah normal"
+    responses:
+      '200':
+        description: Status diperbarui
+        content:
+          application/json:
+            example:
+              message: "Status antrian berhasil diperbarui."
+              data:
+                queue_id: 2
+                queue_number: 2
+                status: "called"
+                estimated_wait_minutes: null
+                nurse_notes: "Pasien sudah siap, tekanan darah normal"
+                updated_at: "2025-08-15T10:05:00Z"
+                reservation:
+                  reservation_id: 2
+                  complaint: "Demam"
+                  patient:
+                    patient_id: 2
+                    name: "Handika Chandra Pratama"
+                    gender: "laki-laki"
+                    phone: "082345678901"
+                  schedule:
+                    instance_id: 1
+                    date: "2025-08-15"
+                    start_time: "08:00"
+                    end_time: "09:45"
+      '403':
+        description: Bukan Nurse
+        content:
+          application/json:
+            example: { message: "Akses ditolak. Endpoint ini hanya untuk nurse." }
+      '404':
+        description: Antrian tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+      '409':
+        description: Transisi status tidak valid
+        content:
+          application/json:
+            example: { message: "Transisi status tidak valid. Status 'done' tidak dapat diubah lagi." }
+      '422':
+        description: Nilai status tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ValidationErrorResponse' }

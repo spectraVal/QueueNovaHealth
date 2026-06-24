@@ -1,0 +1,316 @@
+# =============================================================================
+# Paths — EPIC 3: Reservations
+# Dari Figma patient-create-reservation:
+# - "Informasi Pasien": Nama, No. BPJS, Tempat lahir, Tanggal lahir
+# - "Keluhan Pasien" textarea
+# - Info jadwal: Dokter, Estimasi nomor, Jam, Tanggal
+# - "Dianjurkan datang pada 15:45 untuk check-in"
+# - Checkbox "Checklist bila data sudah sesuai"
+# - Tombol: Kirim | Kembali
+#
+# Dari Figma patient-reservation (history):
+# - Tabs: Semua | Aktif | Selesai | Dibatalkan
+# - Card: Poli, Dokter, "Estimasi nomor antrian: 16", Jam, Tanggal, Status badge
+#
+# Dari Figma patient-detail-reservation:
+# - Panel kiri: list reservasi (history)
+# - Panel kanan: "DETAIL RESERVATION" — info jadwal + info pasien + tombol Batalkan
+# =============================================================================
+
+/reservations:
+  get:
+    tags: [Booking]
+    summary: Riwayat reservasi pasien
+    description: |
+      **Patient only**. Dari Figma patient-reservation:
+      - Tab filter: Semua | Aktif | Selesai | Dibatalkan
+      - Card: Poli, Dokter, Estimasi nomor antrian, Jam, Tanggal, Status
+    operationId: getMyReservations
+    security:
+      - sanctumToken: []
+    parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum: [active, completed, cancelled]
+          example: "active"
+      - name: page
+        in: query
+        required: false
+        schema: { type: integer, default: 1 }
+      - name: per_page
+        in: query
+        required: false
+        schema: { type: integer, default: 10 }
+    responses:
+      '200':
+        description: Riwayat reservasi
+        content:
+          application/json:
+            example:
+              data:
+                - reservation_id: 1
+                  status: "active"
+                  complaint: "Batuk dan pilek"
+                  created_at: "2025-08-10T09:00:00Z"
+                  doctor:
+                    doctor_id: 1
+                    name: "dr. Ucok Napitupulu, Sp.PD"
+                    specialization: "Spesialis Penyakit Dalam"
+                    department:
+                      department_id: 1
+                      name: "Poli Umum"
+                  schedule:
+                    instance_id: 1
+                    date: "2025-08-18"
+                    start_time: "16:00"
+                    end_time: "18:00"
+                    recommended_checkin_time: "15:45"
+                  queue:
+                    queue_id: 1
+                    queue_number: 16
+                    status: "booked"
+                    estimated_wait_minutes: null
+                    estimated_queue_number: 16
+                - reservation_id: 2
+                  status: "completed"
+                  complaint: "Demam"
+                  created_at: "2025-08-05T08:00:00Z"
+                  doctor:
+                    doctor_id: 1
+                    name: "dr. Ucok Napitupulu, Sp.PD"
+                    specialization: "Spesialis Penyakit Dalam"
+                    department:
+                      department_id: 1
+                      name: "Poli Umum"
+                  schedule:
+                    instance_id: 2
+                    date: "2025-08-07"
+                    start_time: "16:00"
+                    end_time: "18:00"
+                    recommended_checkin_time: "15:45"
+                  queue:
+                    queue_id: 2
+                    queue_number: 16
+                    status: "done"
+                    estimated_wait_minutes: null
+                    estimated_queue_number: 16
+                - reservation_id: 3
+                  status: "cancelled"
+                  complaint: null
+                  created_at: "2025-08-01T07:00:00Z"
+                  doctor:
+                    doctor_id: 1
+                    name: "dr. Ucok Napitupulu, Sp.PD"
+                    specialization: "Spesialis Penyakit Dalam"
+                    department:
+                      department_id: 1
+                      name: "Poli Umum"
+                  schedule:
+                    instance_id: 3
+                    date: "2025-08-03"
+                    start_time: "16:00"
+                    end_time: "18:00"
+                    recommended_checkin_time: "15:45"
+                  queue:
+                    queue_id: 3
+                    queue_number: 16
+                    # Dari Figma: "Estimasi nomor antrian: Dibatalkan oleh pasien."
+                    status: "cancelled"
+                    estimated_wait_minutes: null
+                    estimated_queue_number: null
+              meta:
+                current_page: 1
+                per_page: 10
+                total: 3
+                last_page: 1
+                from: 1
+                to: 3
+      '403':
+        description: Bukan Patient
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+  post:
+    tags: [Booking]
+    summary: Buat reservasi baru
+    description: |
+      **Patient only**. Dari Figma patient-create-reservation:
+      - Input: instance_id (dari halaman pilih jadwal), complaint (keluhan pasien)
+      - Informasi Pasien ditampilkan dari `GET /patients/me` (pre-filled)
+      - Setelah submit: sistem generate queue_number otomatis dengan status `booked`
+      - [BARU] `instance_id` menggantikan `schedule_id` dari versi sebelumnya
+    operationId: createReservation
+    security:
+      - sanctumToken: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '../schemas/reservation.yaml#/ReservationRequest' }
+          example:
+            instance_id: 1
+            complaint: "Batuk dan pilek sudah 3 hari, disertai demam ringan"
+    responses:
+      '201':
+        description: Reservasi berhasil — nomor antrian digenerate
+        content:
+          application/json:
+            example:
+              message: "Reservasi berhasil dibuat."
+              data:
+                reservation_id: 5
+                status: "active"
+                complaint: "Batuk dan pilek sudah 3 hari, disertai demam ringan"
+                created_at: "2025-08-10T09:30:00Z"
+                doctor:
+                  doctor_id: 1
+                  name: "dr. Ucok Napitupulu, Sp.PD"
+                  specialization: "Spesialis Penyakit Dalam"
+                  department:
+                    department_id: 1
+                    name: "Poli Umum"
+                schedule:
+                  instance_id: 1
+                  date: "2025-08-18"
+                  start_time: "16:00"
+                  end_time: "18:00"
+                  # Dari Figma: "Dianjurkan datang pada 15:45 untuk check-in"
+                  recommended_checkin_time: "15:45"
+                queue:
+                  queue_id: 5
+                  queue_number: 16
+                  status: "booked"
+                  estimated_wait_minutes: null
+                  estimated_queue_number: 16
+      '409':
+        description: Slot penuh atau double booking
+        content:
+          application/json:
+            example:
+              message: "Slot jadwal sudah penuh atau Anda sudah memiliki reservasi aktif pada jadwal ini."
+      '422':
+        description: Validasi gagal
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ValidationErrorResponse' }
+            example:
+              message: "The given data was invalid."
+              errors:
+                instance_id: ["Jadwal tidak tersedia atau sudah penuh."]
+
+/reservations/{id}:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+
+  get:
+    tags: [Booking]
+    summary: Detail reservasi
+    description: |
+      **Patient only** — hanya reservasi milik pasien yang login.
+      Dari Figma patient-detail-reservation:
+      - "DETAIL RESERVATION" panel kanan
+      - Info jadwal: Dokter, Estimasi nomor, Jam, Tanggal
+      - "Dianjurkan datang pada 15:45 untuk check-in"
+      - Informasi Pasien: Nama, No.BPJS, Tempat lahir, Tanggal lahir, Keluhan
+      - Tombol: Batalkan | Kembali
+      - Queue status real-time (polling dari React SPA)
+    operationId: getReservationById
+    security:
+      - sanctumToken: []
+    responses:
+      '200':
+        description: Detail reservasi
+        content:
+          application/json:
+            example:
+              data:
+                reservation_id: 1
+                status: "active"
+                complaint: "Batuk dan pilek sudah 3 hari"
+                created_at: "2025-08-10T09:00:00Z"
+                patient:
+                  patient_id: 5
+                  name: "Ucok Sitorus"
+                  gender: "laki-laki"
+                  bpjs_number: "0001234567890"
+                  birth_place: "Medan"
+                  birth_date: "1995-06-15"
+                doctor:
+                  doctor_id: 1
+                  name: "dr. Ucok Napitupulu, Sp.PD"
+                  specialization: "Spesialis Penyakit Dalam"
+                  department:
+                    department_id: 1
+                    name: "Poli Umum"
+                schedule:
+                  instance_id: 1
+                  date: "2025-08-18"
+                  start_time: "16:00"
+                  end_time: "18:00"
+                  recommended_checkin_time: "15:45"
+                queue:
+                  queue_id: 1
+                  queue_number: 16
+                  status: "waiting"
+                  estimated_wait_minutes: 25
+                  estimated_queue_number: 16
+      '403':
+        description: Bukan milik pasien ini
+        content:
+          application/json:
+            example: { message: "Akses ditolak. Reservasi ini bukan milik Anda." }
+      '404':
+        description: Tidak ditemukan
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ErrorResponse' }
+
+/reservations/{id}/cancel:
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+
+  patch:
+    tags: [Booking]
+    summary: Batalkan reservasi
+    description: |
+      **Patient only** — hanya reservasi milik pasien yang login.
+      Dari Figma: tombol "Batalkan" di detail reservasi.
+      Tidak perlu request body.
+      Gagal jika antrian sudah `called/in-progress/done`.
+    operationId: cancelReservation
+    security:
+      - sanctumToken: []
+    responses:
+      '200':
+        description: Reservasi dibatalkan
+        content:
+          application/json:
+            example:
+              message: "Reservasi berhasil dibatalkan."
+              data:
+                reservation_id: 1
+                status: "cancelled"
+                queue:
+                  queue_id: 1
+                  queue_number: 16
+                  status: "cancelled"
+      '403':
+        description: Bukan milik pasien ini
+        content:
+          application/json:
+            example: { message: "Akses ditolak. Reservasi ini bukan milik Anda." }
+      '409':
+        description: Tidak bisa dibatalkan
+        content:
+          application/json:
+            example: { message: "Reservasi tidak dapat dibatalkan karena pasien sudah dipanggil atau sedang konsultasi." }

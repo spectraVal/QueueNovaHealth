@@ -1,0 +1,204 @@
+openapi: 3.0.3
+
+# =============================================================================
+# Hospital Queue Management System — API Contract v2.1 (UI-First)
+# =============================================================================
+# Stack      : Laravel 11 (API) + React SPA
+# Auth       : Laravel Sanctum — plain-text Bearer Token
+# Approach   : UI-First — disesuaikan dengan Figma design
+# ERD        : v2 (schedule_templates + schedule_instances, field baru)
+#
+# PERUBAHAN UTAMA dari v2.0:
+# ---------------------------
+# 1. /schedules SPLIT menjadi:
+#    - /doctors/{id}/schedule-templates  (recurring pattern)
+#    - /schedule-instances               (tanggal aktual, auto-generated)
+# 2. Patients: tambah bpjs_number, birth_place, birth_date, gender
+# 3. Doctors : tambah sip_number, birth_date, gender
+# 4. Nurses  : tambah sip_number, birth_date, gender
+# 5. Reservations: tambah complaint (keluhan pasien)
+# 6. POST /reservations: FK ke instance_id (bukan schedule_id)
+# 7. Endpoint baru: GET /patients/me (profil pasien sendiri)
+# 8. Endpoint baru: PATCH /patients/me (update profil pasien)
+#
+# CARA PAKAI TOKEN SANCTUM
+# -------------------------
+# 1. POST /auth/login → dapat data.token
+# 2. Simpan token di React state/memory (BUKAN localStorage)
+# 3. Sertakan di setiap request: Authorization: Bearer {token}
+# 4. POST /auth/logout → token di-revoke
+#
+# ROLES
+# -----
+# patient | doctor | nurse | admin
+#
+# QUEUE STATE MACHINE
+# -------------------
+# booked → checked-in → waiting → called → in-progress → done
+#                                                       ↘ no-show
+#                                ↘ cancelled
+# =============================================================================
+
+info:
+  title: Hospital Queue Management System API
+  version: 2.1.0
+  description: |
+    REST API untuk sistem manajemen antrian rumah sakit QueueNova Health.
+    Disesuaikan dengan UI Figma (UI-First approach).
+
+    ### Perubahan dari v2.0
+    - Schedule sekarang menggunakan sistem **template + instance** (Hybrid)
+    - Field baru di Patient, Doctor, Nurse (SIP, gender, tanggal lahir)
+    - Field `complaint` di Reservation (keluhan pasien)
+    - Endpoint profil pasien (`/patients/me`)
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local Development Server
+  - url: https://api.queuenova.example.com/api
+    description: Production Server
+
+components:
+  securitySchemes:
+    sanctumToken:
+      type: http
+      scheme: bearer
+      bearerFormat: SanctumToken
+      description: |
+        Sanctum plain-text token dari POST /auth/login.
+        Header: `Authorization: Bearer {token}`
+
+  schemas:
+    # Auth
+    RegisterRequest:           { $ref: './schemas/auth.yaml#/RegisterRequest' }
+    LoginRequest:              { $ref: './schemas/auth.yaml#/LoginRequest' }
+    LoginResponse:             { $ref: './schemas/auth.yaml#/LoginResponse' }
+    UserResource:              { $ref: './schemas/auth.yaml#/UserResource' }
+
+    # Patient profile
+    PatientProfileResource:    { $ref: './schemas/patient.yaml#/PatientProfileResource' }
+    PatientProfileRequest:     { $ref: './schemas/patient.yaml#/PatientProfileRequest' }
+
+    # Department
+    DepartmentResource:        { $ref: './schemas/department.yaml#/DepartmentResource' }
+    DepartmentRequest:         { $ref: './schemas/department.yaml#/DepartmentRequest' }
+
+    # Doctor
+    DoctorResource:            { $ref: './schemas/doctor.yaml#/DoctorResource' }
+    DoctorRequest:             { $ref: './schemas/doctor.yaml#/DoctorRequest' }
+    DoctorUpdateRequest:       { $ref: './schemas/doctor.yaml#/DoctorUpdateRequest' }
+
+    # Nurse
+    NurseResource:             { $ref: './schemas/nurse.yaml#/NurseResource' }
+    NurseRequest:              { $ref: './schemas/nurse.yaml#/NurseRequest' }
+    NurseUpdateRequest:        { $ref: './schemas/nurse.yaml#/NurseUpdateRequest' }
+
+    # Schedule Template (recurring)
+    ScheduleTemplateResource:  { $ref: './schemas/schedule.yaml#/ScheduleTemplateResource' }
+    ScheduleTemplateRequest:   { $ref: './schemas/schedule.yaml#/ScheduleTemplateRequest' }
+
+    # Schedule Instance (tanggal aktual)
+    ScheduleInstanceResource:  { $ref: './schemas/schedule.yaml#/ScheduleInstanceResource' }
+    ScheduleInstanceRequest:   { $ref: './schemas/schedule.yaml#/ScheduleInstanceRequest' }
+
+    # Reservation
+    ReservationResource:       { $ref: './schemas/reservation.yaml#/ReservationResource' }
+    ReservationRequest:        { $ref: './schemas/reservation.yaml#/ReservationRequest' }
+
+    # Queue
+    QueueResource:             { $ref: './schemas/queue.yaml#/QueueResource' }
+    QueueStatusRequest:        { $ref: './schemas/queue.yaml#/QueueStatusRequest' }
+    QueueReportResource:       { $ref: './schemas/queue.yaml#/QueueReportResource' }
+
+    # Common
+    SuccessResponse:           { $ref: './schemas/common.yaml#/SuccessResponse' }
+    ErrorResponse:             { $ref: './schemas/common.yaml#/ErrorResponse' }
+    ValidationErrorResponse:   { $ref: './schemas/common.yaml#/ValidationErrorResponse' }
+    PaginationMeta:            { $ref: './schemas/common.yaml#/PaginationMeta' }
+
+tags:
+  - name: Authentication
+    description: "**EPIC 1** — Register, login, logout"
+  - name: Patient Profile
+    description: "**EPIC 1/3** — Profil & data diri pasien"
+  - name: Departments
+    description: "**EPIC 2** — CRUD departemen (Admin)"
+  - name: Doctors
+    description: "**EPIC 2** — CRUD dokter (Admin)"
+  - name: Nurses
+    description: "**EPIC 2** — CRUD suster (Admin)"
+  - name: Schedule Templates
+    description: "**EPIC 2** — Template jadwal berulang per dokter (Admin)"
+  - name: Schedule Instances
+    description: "**EPIC 2/3** — Jadwal aktual per tanggal (auto-generated + override)"
+  - name: Booking
+    description: "**EPIC 3** — Reservasi pasien"
+  - name: Queue
+    description: "**EPIC 4** — Antrian (Nurse update, Doctor & Nurse view)"
+  - name: Reports
+    description: "**EPIC 4** — Laporan antrian (Admin)"
+
+paths:
+  # ---- EPIC 1: Auth ----
+  /auth/register:
+    $ref: './paths/auth.yaml#/~1auth~1register'
+  /auth/login:
+    $ref: './paths/auth.yaml#/~1auth~1login'
+  /auth/logout:
+    $ref: './paths/auth.yaml#/~1auth~1logout'
+  /auth/me:
+    $ref: './paths/auth.yaml#/~1auth~1me'
+
+  # ---- Patient Profile ----
+  /patients/me:
+    $ref: './paths/patients.yaml#/~1patients~1me'
+
+  # ---- EPIC 2: Departments ----
+  /departments:
+    $ref: './paths/departments.yaml#/~1departments'
+  /departments/{id}:
+    $ref: './paths/departments.yaml#/~1departments~1{id}'
+
+  # ---- EPIC 2: Doctors ----
+  /doctors:
+    $ref: './paths/doctors.yaml#/~1doctors'
+  /doctors/{id}:
+    $ref: './paths/doctors.yaml#/~1doctors~1{id}'
+
+  # ---- EPIC 2: Nurses ----
+  /nurses:
+    $ref: './paths/nurses.yaml#/~1nurses'
+  /nurses/{id}:
+    $ref: './paths/nurses.yaml#/~1nurses~1{id}'
+
+  # ---- EPIC 2: Schedule Templates (recurring) ----
+  /doctors/{id}/schedule-templates:
+    $ref: './paths/schedule_templates.yaml#/~1doctors~1{id}~1schedule-templates'
+  /doctors/{id}/schedule-templates/{templateId}:
+    $ref: './paths/schedule_templates.yaml#/~1doctors~1{id}~1schedule-templates~1{templateId}'
+
+  # ---- EPIC 2/3: Schedule Instances (tanggal aktual) ----
+  # Admin: override/cancel per instance
+  # Patient: GET untuk melihat jadwal tersedia sebelum booking
+  /schedule-instances:
+    $ref: './paths/schedule_instances.yaml#/~1schedule-instances'
+  /schedule-instances/{instanceId}:
+    $ref: './paths/schedule_instances.yaml#/~1schedule-instances~1{instanceId}'
+
+  # ---- EPIC 3: Reservations ----
+  /reservations:
+    $ref: './paths/reservations.yaml#/~1reservations'
+  /reservations/{id}:
+    $ref: './paths/reservations.yaml#/~1reservations~1{id}'
+  /reservations/{id}/cancel:
+    $ref: './paths/reservations.yaml#/~1reservations~1{id}~1cancel'
+
+  # ---- EPIC 4: Queue ----
+  /queues:
+    $ref: './paths/queues.yaml#/~1queues'
+  /queues/{id}/status:
+    $ref: './paths/queues.yaml#/~1queues~1{id}~1status'
+
+  # ---- EPIC 4: Reports ----
+  /reports/queues:
+    $ref: './paths/reports.yaml#/~1reports~1queues'

@@ -1,0 +1,110 @@
+# =============================================================================
+# Paths — EPIC 4: Reports
+# Dari Figma admin-reports:
+# - Filter tabs: Semua | Bulan Ini | Bulanan | Tahunan
+# - "Cari berdasarkan tanggal..."
+# - Tabel: # | Profesi | Hadir | Izin | Aktif | Selesai
+# - Summary cards: "Total antrian hari ini: 240", "Total antrian aktif: 60",
+#   "Total antrian dibatalkan: 10"
+# =============================================================================
+
+/reports/queues:
+  get:
+    tags: [Reports]
+    summary: Laporan antrian berdasarkan periode (Admin)
+    description: |
+      **Admin only**. Dari Figma admin-reports:
+      - Filter: Semua | Bulan Ini | Bulanan | Tahunan + input tanggal
+      - Summary: Total antrian hari ini, Total aktif, Total dibatalkan
+      - Breakdown per departemen dan per dokter
+    operationId: getQueueReports
+    security:
+      - sanctumToken: []
+    parameters:
+      - name: period
+        in: query
+        required: true
+        description: "Dari Figma tabs: Semua=all, Bulan Ini=current_month, Bulanan=monthly, Tahunan=yearly"
+        schema:
+          type: string
+          enum: [all, current_month, monthly, yearly]
+          example: "monthly"
+      - name: date
+        in: query
+        required: false
+        description: |
+          Tanggal referensi (YYYY-MM-DD):
+          - `monthly` → sistem ambil bulan dari tanggal ini
+          - `yearly`  → sistem ambil tahun dari tanggal ini
+          - `all` / `current_month` → diabaikan
+        schema:
+          type: string
+          format: date
+          example: "2025-08-01"
+      - name: department_id
+        in: query
+        required: false
+        schema: { type: integer, example: 1 }
+      - name: doctor_id
+        in: query
+        required: false
+        schema: { type: integer, example: 1 }
+    responses:
+      '200':
+        description: Laporan antrian
+        content:
+          application/json:
+            schema: { $ref: '../schemas/queue.yaml#/QueueReportResource' }
+            example:
+              data:
+                period: "monthly"
+                period_label: "Agustus 2025"
+                date_range:
+                  from: "2025-08-01"
+                  to: "2025-08-31"
+                # Dari Figma summary cards
+                summary:
+                  total_reservations: 240
+                  completed: 180
+                  cancelled: 10
+                  active: 50
+                  # "Total antrian hari ini" — khusus hari ini
+                  today_total: 24
+                by_department:
+                  - department_id: 1
+                    department_name: "Poli Umum"
+                    total: 100
+                    completed: 75
+                    cancelled: 5
+                    active: 20
+                  - department_id: 2
+                    department_name: "Poli Mata"
+                    total: 80
+                    completed: 60
+                    cancelled: 3
+                    active: 17
+                by_doctor:
+                  - doctor_id: 1
+                    doctor_name: "dr. Ucok Napitupulu, Sp.PD"
+                    department_name: "Poli Umum"
+                    total: 60
+                    completed: 45
+                    cancelled: 3
+                    active: 12
+                  - doctor_id: 2
+                    doctor_name: "dr. Tirta Pengpeng"
+                    department_name: "Poli Umum"
+                    total: 40
+                    completed: 30
+                    cancelled: 2
+                    active: 8
+      '403':
+        description: Bukan Admin
+        content:
+          application/json:
+            example: { message: "Akses ditolak. Endpoint ini hanya untuk admin." }
+      '422':
+        description: Parameter tidak valid
+        content:
+          application/json:
+            schema: { $ref: '../schemas/common.yaml#/ValidationErrorResponse' }
