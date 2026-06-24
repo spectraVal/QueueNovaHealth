@@ -19,7 +19,7 @@ services:
     expose:
       - "9000"
     environment:
-      APP_KEY:base64:xzE4oI69fFRsfLTse/G54qQ9gZllB2DSri5KFf2pXuk=
+      APP_KEY: base64:xzE4oI69fFRsfLTse/G54qQ9gZllB2DSri5KFf2pXuk=
       APP_ENV: local
       APP_DEBUG: true
       APP_URL: http://localhost:8000

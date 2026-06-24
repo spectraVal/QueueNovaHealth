@@ -2,7 +2,10 @@ FROM php:8.3-fpm-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
+    $PHPIZE_DEPS \
     postgresql-dev \
+    oniguruma-dev \
+    freetype-dev \
     libpng-dev \
     libjpeg-turbo-dev \
     libwebp-dev \
@@ -12,8 +15,14 @@ RUN apk add --no-cache \
     curl \
     supervisor
 
+
+RUN docker-php-ext-configure gd \
+    --with-freetype \
+    --with-jpeg \
+    --with-webp
+
 # Install PHP extensions
-RUN docker-php-ext-install \
+RUN docker-php-ext-install -j$(nproc) \
     pdo \
     pdo_pgsql \
     pgsql \
@@ -31,7 +40,7 @@ WORKDIR /var/www/html
 COPY composer.json composer.lock ./
 
 # Install PHP dependencies (no scripts, no autoload yet)
-RUN composer install --no-interaction --no-scripts --no-autoload --prefer-dist
+RUN composer install --no-interaction --no-scripts --no-autoloader --prefer-dist
 
 # Copy rest of the application
 COPY . .
@@ -50,5 +59,8 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/php.ini /usr/local/etc/php/conf.d/custom.ini
 
 EXPOSE 9000
+
+RUN mkdir -p /var/log/supervisor \
+    && chown -R www-data:www-data /var/log/supervisor
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
